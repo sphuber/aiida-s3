@@ -76,8 +76,16 @@ show_traceback = true
 
 [[tool.mypy.overrides]]
 module = 'aiida_s3.*'
-follow_imports = 'skip'
 check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    'boto3.*',
+    'botocore.*',
+    'pymatgen.*',
+    'ruamel.*',
+]
+ignore_missing_imports = true
 
 [tool.pydocstyle]
 ignore = [
@@ -97,6 +105,7 @@ disable = [
     'bad-continuation',
     'duplicate-code',
     'import-outside-toplevel',
+    'too-many-arguments',
 ]
 
 [tool.yapf]
