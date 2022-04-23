@@ -3,16 +3,10 @@ repos:
     rev: v4.1.0
     hooks:
     -   id: double-quote-string-fixer
-        exclude: &exclude_files >
-            (?x)^(
-                tests/.*|
-            )$
     -   id: end-of-file-fixer
-        exclude: *exclude_files
     -   id: fix-encoding-pragma
     -   id: mixed-line-ending
     -   id: trailing-whitespace
-        exclude: *exclude_files
 
 -   repo: https://github.com/ikamensh/flynt/
     rev: '0.76'
@@ -31,7 +25,6 @@ repos:
         name: yapf
         types: [python]
         args: ['-i']
-        exclude: *exclude_files
         additional_dependencies: ['toml']
 
 -   repo: https://github.com/PyCQA/pylint
@@ -39,13 +32,11 @@ repos:
     hooks:
     -   id: pylint
         language: system
-        exclude: *exclude_files
 
 -   repo: https://github.com/PyCQA/pydocstyle
     rev: '6.1.1'
     hooks:
     -   id: pydocstyle
-        exclude: *exclude_files
         additional_dependencies: ['toml']
 
 -   repo: local
