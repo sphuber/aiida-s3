@@ -2,6 +2,7 @@
 # pylint: disable=redefined-outer-name
 """Test fixtures for the :mod:`aiida_s3` module."""
 import contextlib
+import io
 import os
 import pathlib
 import typing as t
@@ -124,6 +125,124 @@ def aws_s3_client(aws_s3) -> botocore.client.BaseClient:
                 client.delete_objects(Bucket=bucket_name, Delete=delete)
 
             client.delete_bucket(Bucket=bucket_name)
+
+
+@pytest.fixture(scope='session')
+@contextlib.contextmanager
+def postgres_cluster(database_name=None, database_username=None, database_password=None) -> dict:
+    """Create a PostgreSQL cluster using ``pgtest`` and cleanup after the yield."""
+    from aiida.manage.external.postgres import Postgres
+    from pgtest.pgtest import PGTest
+
+    postgres_config = {
+        'database_engine': 'postgresql_psycopg2',
+        'database_port': None,
+        'database_hostname': None,
+        'database_name': database_name or str(uuid.uuid4()),
+        'database_username': database_username or 'guest',
+        'database_password': database_password or 'guest',
+    }
+
+    try:
+        cluster = PGTest()
+
+        postgres = Postgres(interactive=False, quiet=True, dbinfo=cluster.dsn)
+        postgres.create_dbuser(postgres_config['database_username'], postgres_config['database_password'], 'CREATEDB')
+        postgres.create_db(postgres_config['database_username'], postgres_config['database_name'])
+
+        postgres_config['database_hostname'] = postgres.host_for_psycopg2
+        postgres_config['database_port'] = postgres.port_for_psycopg2
+
+        yield postgres_config
+    finally:
+        cluster.close()
+
+
+@pytest.fixture(scope='session')
+def aiida_manager():
+    """Return the global instance of the :class:`aiida.manage.manager.Manager`."""
+    from aiida.manage import get_manager
+    return get_manager()
+
+
+@pytest.fixture(scope='session')
+@contextlib.contextmanager
+def aiida_cluster(tmp_path_factory, aiida_manager):
+    """Create a temporary configuration instance.
+
+    This creates a temporary directory with a clean `.aiida` folder and basic configuration file. The currently loaded
+    configuration and profile are stored in memory and are automatically restored at the end of this context manager.
+
+    :return: A new empty config instance.
+    """
+    from aiida.manage import configuration
+
+    reset = False
+
+    if configuration.CONFIG is not None:
+        reset = True
+        current_config = configuration.CONFIG
+        current_config_path = current_config.dirpath
+        current_profile_name = configuration.get_profile().name
+
+    configuration.settings.AIIDA_CONFIG_FOLDER = tmp_path_factory.mktemp('config')
+    configuration.settings.create_instance_directories()
+    configuration.CONFIG = configuration.load_config(create=True)
+
+    try:
+        yield configuration.CONFIG
+    finally:
+        if reset:
+            configuration.settings.AIIDA_CONFIG_FOLDER = current_config_path
+            configuration.CONFIG = current_config
+            aiida_manager.load_profile(current_profile_name, allow_switch=True)
+
+
+@pytest.fixture(scope='session')
+def aiida_profile(aiida_cluster, aiida_manager, aws_s3, postgres_cluster):
+    """Docs."""
+    from aiida.manage.configuration import Profile
+    from aiida.orm import User
+
+    with aiida_cluster as aiida_config, postgres_cluster as postgres_config:
+
+        parameters = {
+            'test_profile': True,
+            'storage': {
+                'backend': 's3.psql_aws_s3',
+                'config': {
+                    **postgres_config,
+                    **aws_s3,
+                    'repository_uri': f'file://{aiida_config.dirpath}',
+                }
+            },
+            'process_control': {
+                'backend': 'rabbitmq',
+                'config': {
+                    'broker_protocol': 'amqp',
+                    'broker_username': 'guest',
+                    'broker_password': 'guest',
+                    'broker_host': '127.0.0.1',
+                    'broker_port': 5672,
+                    'broker_virtual_host': '',
+                }
+            }
+        }
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            profile_name = str(uuid.uuid4())
+            profile = Profile(profile_name, parameters)
+            profile.storage_cls.migrate(profile)
+
+            aiida_config.add_profile(profile)
+            aiida_config.set_default_profile(profile_name).store()
+
+            aiida_manager.load_profile(profile_name, allow_switch=True)
+
+            user = User(email='test@mail.com').store()
+            profile.default_user_email = user.email
+
+        yield profile
 
 
 @pytest.fixture

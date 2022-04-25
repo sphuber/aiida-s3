@@ -44,6 +44,9 @@ tests = [
     'pytest~=6.2',
 ]
 
+[project.entry-points.'aiida.storage']
+'s3.psql_aws_s3' = 'aiida_s3.storage.psql_aws_s3:PsqlAwsS3Storage'
+
 [tool.flit.module]
 name = 'aiida_s3'
 
