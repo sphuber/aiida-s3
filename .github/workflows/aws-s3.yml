@@ -1,0 +1,47 @@
+name: aws-s3
+
+on:
+    workflow_dispatch:
+        inputs:
+            region_name:
+                description: 'AWS region name'
+                required: true
+                default: 'eu-central-1'
+
+jobs:
+
+    tests:
+
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+
+        steps:
+        -   uses: actions/checkout@v2
+
+        -   name: Cache Python dependencies
+            id: cache-pip
+            uses: actions/cache@v1
+            with:
+                path: ~/.cache/pip
+                key: pip-${{ matrix.python-version }}-tests-${{ hashFiles('**/setup.json') }}
+                restore-keys:
+                    pip-${{ matrix.python-version }}-tests
+
+        -   name: Install Python 3.10
+            uses: actions/setup-python@v2
+            with:
+                python-version: '3.10'
+
+        -   name: Install Python package and dependencies
+            run: pip install -e .[tests]
+
+        -   name: Install custom `aiida-core` branch
+            run: pip install git+https://github.com/sphuber/aiida-core.git@feature/5495/storage-backend-entry-points
+
+        -   name: Run pytest
+            env:
+                AIIDA_S3_MOCK_AWS_S3: False
+                AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                AWS_REGION_NAME: ${{ github.event.inputs.region_name }}
+            run: pytest -sv tests
