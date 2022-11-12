@@ -25,7 +25,8 @@ classifiers = [
 keywords = ['aiida', 'workflows', 's3']
 requires-python = '>=3.8'
 dependencies = [
-    'aiida-core~=2.0.0b1',
+    'aiida-core~=2.1',
+    'boto3',
 ]
 
 [project.urls]
