@@ -29,7 +29,7 @@ def test_node_storage():
     content = 'test content'
 
     node.base.attributes.set_many(attributes)
-    node.base.repository.put_object_from_filelike(io.StringIO(content), filename)
+    node.base.repository.put_object_from_filelike(io.StringIO(content), filename)  # type: ignore[arg-type]
     node.store()
 
     loaded = orm.load_node(node.pk)

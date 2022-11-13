@@ -59,7 +59,7 @@ def aws_s3_config(should_mock_aws_s3) -> dict:
 
 
 @pytest.fixture(scope='session', autouse=True)
-def aws_s3(should_mock_aws_s3, aws_s3_bucket_name, aws_s3_config) -> dict:
+def aws_s3(should_mock_aws_s3, aws_s3_bucket_name, aws_s3_config) -> t.Generator[dict, None, None]:
     """Return the AWS S3 connection configuration for the session.
 
     The return value is a dictionary with the following keys:
@@ -128,8 +128,9 @@ def aws_s3_client(aws_s3) -> botocore.client.BaseClient:
 
 
 @pytest.fixture(scope='session')
-@contextlib.contextmanager
-def postgres_cluster(database_name=None, database_username=None, database_password=None) -> dict:
+def postgres_cluster(database_name=None,
+                     database_username=None,
+                     database_password=None) -> t.Generator[dict, None, None]:
     """Create a PostgreSQL cluster using ``pgtest`` and cleanup after the yield."""
     from aiida.manage.external.postgres import Postgres
     from pgtest.pgtest import PGTest
@@ -166,7 +167,6 @@ def aiida_manager():
 
 
 @pytest.fixture(scope='session')
-@contextlib.contextmanager
 def aiida_cluster(tmp_path_factory, aiida_manager):
     """Create a temporary configuration instance.
 
@@ -184,7 +184,8 @@ def aiida_cluster(tmp_path_factory, aiida_manager):
         reset = True
         current_config = configuration.CONFIG
         current_config_path = current_config.dirpath
-        current_profile_name = configuration.get_profile().name
+        current_profile = configuration.get_profile()
+        current_profile_name = current_profile.name if current_profile else None
 
     settings.AIIDA_CONFIG_FOLDER = tmp_path_factory.mktemp('config')
     settings.create_instance_directories()
