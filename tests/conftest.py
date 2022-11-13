@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
 """Test fixtures for the :mod:`aiida_s3` module."""
+from __future__ import annotations
+
 import contextlib
 import io
 import os
@@ -8,10 +10,26 @@ import pathlib
 import typing as t
 import uuid
 
+from aiida.manage import Config, Profile, get_manager, get_profile
+from aiida.manage.manager import Manager
+from aiida.orm import User
 import boto3
 import botocore
 import moto
 import pytest
+
+
+def resursive_merge(left: dict[t.Any, t.Any], right: dict[t.Any, t.Any]) -> None:
+    """Recursively merge the ``right`` dictionary into the ``left`` dictionary.
+
+    :param left: Base dictionary.
+    :param right: Dictionary to recurisvely merge on top of ``left`` dictionary.
+    """
+    for key, value in right.items():
+        if (key in left and isinstance(left[key], dict) and isinstance(value, dict)):
+            resursive_merge(left[key], value)
+        else:
+            left[key] = value
 
 
 @pytest.fixture(scope='session')
@@ -59,7 +77,7 @@ def aws_s3_config(should_mock_aws_s3) -> dict:
 
 
 @pytest.fixture(scope='session', autouse=True)
-def aws_s3(should_mock_aws_s3, aws_s3_bucket_name, aws_s3_config) -> dict:
+def aws_s3(should_mock_aws_s3, aws_s3_bucket_name, aws_s3_config) -> t.Generator[dict[str, str], None, None]:
     """Return the AWS S3 connection configuration for the session.
 
     The return value is a dictionary with the following keys:
@@ -128,16 +146,23 @@ def aws_s3_client(aws_s3) -> botocore.client.BaseClient:
 
 
 @pytest.fixture(scope='session')
-@contextlib.contextmanager
-def postgres_cluster(database_name=None, database_username=None, database_password=None) -> dict:
-    """Create a PostgreSQL cluster using ``pgtest`` and cleanup after the yield."""
+def postgres_cluster(
+    database_name: str | None = None,
+    database_username: str | None = None,
+    database_password: str | None = None
+) -> t.Generator[dict[str, str], None, None]:
+    """Create a PostgreSQL cluster using ``pgtest`` and cleanup after the yield.
+
+    :param database_name: Name of the database.
+    :param database_username: Username to use for authentication.
+    :param database_password: Password to use for authentication.
+    :returns: Dictionary with parameters to connect to the PostgreSQL cluster.
+    """
     from aiida.manage.external.postgres import Postgres
     from pgtest.pgtest import PGTest
 
     postgres_config = {
         'database_engine': 'postgresql_psycopg2',
-        'database_port': None,
-        'database_hostname': None,
         'database_name': database_name or str(uuid.uuid4()),
         'database_username': database_username or 'guest',
         'database_password': database_password or 'guest',
@@ -159,63 +184,131 @@ def postgres_cluster(database_name=None, database_username=None, database_passwo
 
 
 @pytest.fixture(scope='session')
-def aiida_manager():
-    """Return the global instance of the :class:`aiida.manage.manager.Manager`."""
-    from aiida.manage import get_manager
+def aiida_test_profile() -> str | None:
+    """Return the name of the AiiDA test profile if defined.
+
+    The name is taken from the ``AIIDA_TEST_PROFILE`` environment variable.
+
+    :returns: The name of the profile to you for the test session or ``None`` if not defined.
+    """
+    return os.environ.get('AIIDA_TEST_PROFILE', None)
+
+
+@pytest.fixture(scope='session')
+def aiida_manager() -> Manager:
+    """Return the global instance of the :class:`aiida.manage.manager.Manager`.
+
+    :returns: The global manager instance.
+    """
     return get_manager()
 
 
 @pytest.fixture(scope='session')
-@contextlib.contextmanager
-def aiida_cluster(tmp_path_factory, aiida_manager):
+def aiida_instance(
+    tmp_path_factory: pytest.TempPathFactory,
+    aiida_manager: Manager,
+    aiida_test_profile: str | None,
+) -> t.Generator[Config, None, None]:
     """Create a temporary configuration instance.
 
     This creates a temporary directory with a clean `.aiida` folder and basic configuration file. The currently loaded
     configuration and profile are stored in memory and are automatically restored at the end of this context manager.
 
-    :return: A new empty config instance.
+    :return: The configuration of a temporary, isolated and empty AiiDA instance.
     """
     from aiida.manage import configuration
+    from aiida.manage.configuration import settings
 
-    reset = False
+    if aiida_test_profile:
+        yield configuration.get_config()
 
-    if configuration.CONFIG is not None:
-        reset = True
-        current_config = configuration.CONFIG
-        current_config_path = current_config.dirpath
-        current_profile_name = configuration.get_profile().name
+    else:
+        reset = False
 
-    configuration.settings.AIIDA_CONFIG_FOLDER = tmp_path_factory.mktemp('config')
-    configuration.settings.create_instance_directories()
-    configuration.CONFIG = configuration.load_config(create=True)
+        if configuration.CONFIG is not None:
+            reset = True
+            current_config = configuration.CONFIG
+            current_config_path = current_config.dirpath
+            current_profile = configuration.get_profile()
 
-    try:
-        yield configuration.CONFIG
-    finally:
-        if reset:
-            configuration.settings.AIIDA_CONFIG_FOLDER = current_config_path
-            configuration.CONFIG = current_config
-            aiida_manager.load_profile(current_profile_name, allow_switch=True)
+        settings.AIIDA_CONFIG_FOLDER = tmp_path_factory.mktemp('config')
+        settings.create_instance_directories()
+        configuration.CONFIG = configuration.load_config(create=True)
+
+        try:
+            yield configuration.CONFIG
+        finally:
+            if reset:
+                settings.AIIDA_CONFIG_FOLDER = current_config_path
+                configuration.CONFIG = current_config
+                if current_profile:
+                    aiida_manager.load_profile(current_profile.name, allow_switch=True)
 
 
 @pytest.fixture(scope='session')
-def aiida_profile(aiida_cluster, aiida_manager, aws_s3, postgres_cluster):
-    """Docs."""
-    from aiida.manage.configuration import Profile
-    from aiida.orm import User
+def config_psql_dos(
+    tmp_path_factory: pytest.TempPathFactory,
+    postgres_cluster: dict[str, str],
+) -> t.Callable[[dict[str, t.Any] | None], dict[str, t.Any]]:
+    """Return a profile configuration for the :class:`aiida.storage.psql_dos.backend.PsqlDosBackend`."""
 
-    with aiida_cluster as aiida_config, postgres_cluster as postgres_config:
+    def factory(custom_configuration: dict[str, t.Any] | None = None) -> dict[str, t.Any]:
+        """Return a profile configuration for the :class:`aiida.storage.psql_dos.backend.PsqlDosBackend`.
 
-        parameters = {
-            'test_profile': True,
+        :param custom_configuration: Custom configuration to override default profile configuration.
+        :returns: The profile configuration.
+        """
+        configuration = {
             'storage': {
-                'backend': 's3.psql_aws_s3',
+                'backend': 'core.psql_dos',
                 'config': {
-                    **postgres_config,
-                    **aws_s3,
-                    'repository_uri': f'file://{aiida_config.dirpath}',
+                    **postgres_cluster,
+                    'repository_uri': f'file://{tmp_path_factory.mktemp("repository")}',
                 }
-            },
+            }
+        }
+        resursive_merge(configuration, custom_configuration or {})
+        return configuration
+
+    return factory
+
+
+@pytest.fixture(scope='session')
+def config_psql_aws_s3(
+    config_psql_dos: t.Callable[[dict[str, t.Any] | None], dict[str, t.Any]],
+    aws_s3: dict[str, str],
+) -> t.Callable[[dict[str, t.Any] | None], dict[str, t.Any]]:
+    """Return a profile configuration for the :class:`aiida_s3.storage.psql_aws_s3.PsqlAwsS3Storage`."""
+
+    def factory(custom_configuration: dict[str, t.Any] | None = None) -> dict[str, t.Any]:
+        """Return a profile configuration for the :class:`aiida_s3.storage.psql_aws_s3.PsqlAwsS3Storage`.
+
+        :param custom_configuration: Custom configuration to override default profile configuration.
+        :returns: The profile configuration.
+        """
+        configuration = config_psql_dos({})
+        resursive_merge(configuration, {'storage': {'backend': 's3.psql_aws_s3', 'config': {**aws_s3}}})
+        resursive_merge(configuration, custom_configuration or {})
+        return configuration
+
+    return factory
+
+
+@pytest.fixture(scope='session')
+def aiida_profile_factory(
+    aiida_instance: Config,
+    aiida_manager: Manager,
+) -> t.Callable[[dict[str, t.Any]], Profile]:
+    """Create an isolated AiiDA instance with a temporary and fully loaded profile."""
+
+    def factory(custom_configuration: dict[str, t.Any]) -> Profile:
+        """Create an isolated AiiDA instance with a temporary and fully loaded profile.
+
+        :param custom_configuration: Custom configuration to override default profile configuration.
+        :returns: The constructed profile.
+        """
+        configuration = {
+            'storage': {},
             'process_control': {
                 'backend': 'rabbitmq',
                 'config': {
@@ -228,21 +321,51 @@ def aiida_profile(aiida_cluster, aiida_manager, aws_s3, postgres_cluster):
                 }
             }
         }
+        resursive_merge(configuration, custom_configuration or {})
+        configuration['test_profile'] = True
 
         with contextlib.redirect_stdout(io.StringIO()):
             profile_name = str(uuid.uuid4())
-            profile = Profile(profile_name, parameters)
+            profile = Profile(profile_name, configuration)
             profile.storage_cls.migrate(profile)
 
-            aiida_config.add_profile(profile)
-            aiida_config.set_default_profile(profile_name).store()
+            aiida_instance.add_profile(profile)
+            aiida_instance.set_default_profile(profile_name).store()
 
             aiida_manager.load_profile(profile_name, allow_switch=True)
 
             user = User(email='test@mail.com').store()
             profile.default_user_email = user.email
 
+        return profile
+
+    return factory
+
+
+@pytest.fixture(scope='session')
+def aiida_profile(
+    aiida_manager: Manager,
+    aiida_test_profile: str | None,
+    aiida_profile_factory: t.Callable[[dict[str, t.Any] | None], Profile],
+    config_psql_dos: t.Callable[[dict[str, t.Any] | None], dict[str, t.Any]],
+) -> t.Generator[Profile, None, None]:
+    """Return a loaded AiiDA test profile.
+
+    If a test profile has been declared, as returned by the ``aiida_test_profile`` fixture, that is loaded and yielded.
+    Otherwise, a temporary and fully isolated AiiDA instance is created, complete with a loaded test profile, that are
+    all automatically cleaned up at the end of the test session. The storage backend used for the profile is
+    :class:`aiida.storage.psql_dos.backend.PsqlDosBackend`.
+    """
+    if aiida_test_profile is not None:
+        aiida_manager.load_profile(aiida_test_profile)
+        profile = get_profile()
+
+        if profile is None:
+            raise RuntimeError(f'could not load the `{aiida_test_profile}` test profile.')
+
         yield profile
+
+    yield aiida_profile_factory(config_psql_dos({}))
 
 
 @pytest.fixture

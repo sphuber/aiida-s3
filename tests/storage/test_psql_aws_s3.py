@@ -10,10 +10,11 @@ from aiida_s3.repository.aws_s3 import AwsS3RepositoryBackend
 from aiida_s3.storage.psql_aws_s3 import PsqlAwsS3Storage
 
 
-@pytest.fixture
-def storage(aiida_profile):
+@pytest.fixture(scope='session')
+def storage(aiida_profile_factory, config_psql_aws_s3):
     """Return an instance of :class:`aiida_s3.repository.aws_s3.PsqlAwsS3Storage` configured for the test profile."""
-    return PsqlAwsS3Storage(profile=aiida_profile)
+    profile = aiida_profile_factory(config_psql_aws_s3())
+    yield PsqlAwsS3Storage(profile=profile)
 
 
 def test_get_repository(storage):
@@ -29,7 +30,7 @@ def test_node_storage():
     content = 'test content'
 
     node.base.attributes.set_many(attributes)
-    node.base.repository.put_object_from_filelike(io.StringIO(content), filename)
+    node.base.repository.put_object_from_filelike(io.StringIO(content), filename)  # type: ignore[arg-type]
     node.store()
 
     loaded = orm.load_node(node.pk)
