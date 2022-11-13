@@ -2,6 +2,7 @@
 # pylint: disable=redefined-outer-name
 """Tests for the :mod:`aiida_s3.repository.aws_s3` module."""
 import io
+import typing as t
 import uuid
 
 import pytest
@@ -10,14 +11,14 @@ from aiida_s3.repository.aws_s3 import AwsS3RepositoryBackend
 
 
 @pytest.fixture(scope='function')
-def repository_uninitialised(aws_s3_config) -> AwsS3RepositoryBackend:
+def repository_uninitialised(aws_s3_config) -> t.Generator[AwsS3RepositoryBackend, None, None]:
     """Return uninitialised instance of :class:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend`."""
     repository = AwsS3RepositoryBackend(str(uuid.uuid4()), **aws_s3_config)
     yield repository
 
 
 @pytest.fixture(scope='function')
-def repository(aws_s3_bucket_name, aws_s3_config) -> AwsS3RepositoryBackend:
+def repository(aws_s3_bucket_name, aws_s3_config) -> t.Generator[AwsS3RepositoryBackend, None, None]:
     """Return initialised instance of :class:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend`."""
     repository = AwsS3RepositoryBackend(aws_s3_bucket_name, **aws_s3_config)
     repository.initialise()
