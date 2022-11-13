@@ -35,9 +35,6 @@ jobs:
         -   name: Install Python package and dependencies
             run: pip install -e .[tests]
 
-        -   name: Install custom `aiida-core` branch
-            run: pip install git+https://github.com/sphuber/aiida-core.git@feature/5495/storage-backend-entry-points
-
         -   name: Run pytest
             env:
                 AIIDA_S3_MOCK_AWS_S3: False
