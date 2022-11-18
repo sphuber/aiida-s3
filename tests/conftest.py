@@ -176,6 +176,7 @@ def aiida_cluster(tmp_path_factory, aiida_manager):
     :return: A new empty config instance.
     """
     from aiida.manage import configuration
+    from aiida.manage.configuration import settings
 
     reset = False
 
@@ -185,15 +186,15 @@ def aiida_cluster(tmp_path_factory, aiida_manager):
         current_config_path = current_config.dirpath
         current_profile_name = configuration.get_profile().name
 
-    configuration.settings.AIIDA_CONFIG_FOLDER = tmp_path_factory.mktemp('config')
-    configuration.settings.create_instance_directories()
+    settings.AIIDA_CONFIG_FOLDER = tmp_path_factory.mktemp('config')
+    settings.create_instance_directories()
     configuration.CONFIG = configuration.load_config(create=True)
 
     try:
         yield configuration.CONFIG
     finally:
         if reset:
-            configuration.settings.AIIDA_CONFIG_FOLDER = current_config_path
+            settings.AIIDA_CONFIG_FOLDER = current_config_path
             configuration.CONFIG = current_config
             aiida_manager.load_profile(current_profile_name, allow_switch=True)
 
@@ -204,45 +205,43 @@ def aiida_profile(aiida_cluster, aiida_manager, aws_s3, postgres_cluster):
     from aiida.manage.configuration import Profile
     from aiida.orm import User
 
-    with aiida_cluster as aiida_config, postgres_cluster as postgres_config:
-
-        parameters = {
-            'test_profile': True,
-            'storage': {
-                'backend': 's3.psql_aws_s3',
-                'config': {
-                    **postgres_config,
-                    **aws_s3,
-                    'repository_uri': f'file://{aiida_config.dirpath}',
-                }
-            },
-            'process_control': {
-                'backend': 'rabbitmq',
-                'config': {
-                    'broker_protocol': 'amqp',
-                    'broker_username': 'guest',
-                    'broker_password': 'guest',
-                    'broker_host': '127.0.0.1',
-                    'broker_port': 5672,
-                    'broker_virtual_host': '',
-                }
+    parameters = {
+        'test_profile': True,
+        'storage': {
+            'backend': 's3.psql_aws_s3',
+            'config': {
+                **postgres_cluster,
+                **aws_s3,
+                'repository_uri': f'file://{aiida_cluster.dirpath}',
+            }
+        },
+        'process_control': {
+            'backend': 'rabbitmq',
+            'config': {
+                'broker_protocol': 'amqp',
+                'broker_username': 'guest',
+                'broker_password': 'guest',
+                'broker_host': '127.0.0.1',
+                'broker_port': 5672,
+                'broker_virtual_host': '',
             }
         }
+    }
 
-        with contextlib.redirect_stdout(io.StringIO()):
-            profile_name = str(uuid.uuid4())
-            profile = Profile(profile_name, parameters)
-            profile.storage_cls.migrate(profile)
+    with contextlib.redirect_stdout(io.StringIO()):
+        profile_name = str(uuid.uuid4())
+        profile = Profile(profile_name, parameters)
+        profile.storage_cls.migrate(profile)
 
-            aiida_config.add_profile(profile)
-            aiida_config.set_default_profile(profile_name).store()
+        aiida_cluster.add_profile(profile)
+        aiida_cluster.set_default_profile(profile_name).store()
 
-            aiida_manager.load_profile(profile_name, allow_switch=True)
+        aiida_manager.load_profile(profile_name, allow_switch=True)
 
-            user = User(email='test@mail.com').store()
-            profile.default_user_email = user.email
+        user = User(email='test@mail.com').store()
+        profile.default_user_email = user.email
 
-        yield profile
+    yield profile
 
 
 @pytest.fixture
