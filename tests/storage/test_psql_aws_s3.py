@@ -10,17 +10,13 @@ from aiida_s3.repository.aws_s3 import AwsS3RepositoryBackend
 from aiida_s3.storage.psql_aws_s3 import PsqlAwsS3Storage
 
 
-@pytest.fixture
-def storage(aiida_profile):
-    """Return an instance of :class:`aiida_s3.repository.aws_s3.PsqlAwsS3Storage` configured for the test profile."""
-    return PsqlAwsS3Storage(profile=aiida_profile)
-
-
-def test_get_repository(storage):
+def test_get_repository(psql_aws_s3_profile):
     """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.get_repository` method."""
+    storage = PsqlAwsS3Storage(psql_aws_s3_profile)
     assert isinstance(storage.get_repository(), AwsS3RepositoryBackend)
 
 
+@pytest.mark.usefixtures('psql_aws_s3_profile')
 def test_node_storage():
     """Test storing and loading a node with attributes and file objects."""
     node = orm.Data()
