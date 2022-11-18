@@ -27,6 +27,7 @@ keywords = ['aiida', 'workflows', 's3']
 requires-python = '>=3.8'
 dependencies = [
     'aiida-core @ git+https://github.com/aiidateam/aiida-core.git@main',
+    'azure-storage-blob',
     'boto3',
 ]
 
@@ -48,6 +49,7 @@ tests = [
 
 [project.entry-points.'aiida.storage']
 's3.psql_aws_s3' = 'aiida_s3.storage.psql_aws_s3:PsqlAwsS3Storage'
+'s3.psql_azure_blob' = 'aiida_s3.storage.psql_azure_blob:PsqlAzureBlobStorage'
 
 [tool.flit.module]
 name = 'aiida_s3'

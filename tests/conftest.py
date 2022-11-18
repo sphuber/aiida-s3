@@ -171,6 +171,116 @@ def psql_aws_s3_profile(aiida_profile_factory, config_psql_aws_s3) -> t.Generato
     yield aiida_profile_factory(config_psql_aws_s3())
 
 
+@pytest.fixture(scope='session')
+def should_mock_azure_blob() -> bool:
+    """Return whether the Azure Blob Storage client should be mocked this session or not.
+
+    Returns the boolean equivalent of the ``AIIDA_S3_MOCK_AZURE_BLOB`` environment variable. If it is not defined,
+    ``True`` is returned by default.
+
+    :return: Boolean as to whether the Azure Blob Storage client connection should be mocked.
+    """
+    default = 'True'
+    return os.getenv('AIIDA_S3_MOCK_AZURE_BLOB', default) == default
+
+
+@pytest.fixture(scope='session')
+def azure_blob_container_name(should_mock_azure_blob) -> str:
+    """Return the name of the container used for this session.
+
+    Returns the value defined by the ``AZURE_BLOB_CONTAINER_NAME`` environment variable if defined and
+    ``AIIDA_S3_MOCK_AZURE_BLOB`` is set to ``True``, otherwise generates a random name based on :func:`uuid.uuid4`.
+
+    :return: Name of the container used for this session.
+    """
+    default = str(uuid.uuid4())
+    return os.getenv('AZURE_BLOB_CONTAINER_NAME', default) if not should_mock_azure_blob else default
+
+
+@pytest.fixture(scope='session')
+def azure_blob_config(should_mock_azure_blob) -> dict:
+    """Return a dictionary with Azure Blob Storage credentials.
+
+    The credentials are taken from the ``AZURE_BLOB_CONNECTION_STRING`` environment variable, if and only if
+    ``AIIDA_S3_MOCK_AZURE_BLOB`` is set to ``True``, otherwise mocked values will be enforced.
+
+    :return: Dictionary with parameters needed to initialize an Azure Blob Storage client. Contains the key
+        ``connection_string``.
+    """
+    return {
+        'connection_string': os.getenv('AZURE_BLOB_CONNECTION_STRING') if not should_mock_azure_blob else 'mocked',
+    }
+
+
+@pytest.fixture(scope='session', autouse=True)
+def azure_blob_storage(
+    should_mock_azure_blob,
+    azure_blob_container_name,
+    azure_blob_config,
+) -> t.Generator[dict[str, str], None, None]:
+    """Return the Azure Blob Storage connection configuration for the session.
+
+    The return value is a dictionary with the following keys:
+
+        * `container_name`
+        * `connection_string`
+
+    These values are provided by the ``azure_blob_container_name`` and ``azure_blob_config`` fixtures, respectively. See
+    their documentation how to specify access credentials using environment variables.
+
+    Unless ``AIIDA_S3_MOCK_AZURE_BLOB`` is set to ``True``, the Azure Blob Service client will be mocked for the entire
+    session using THE WHAT?.
+
+    :return: Dictionary with the connection parameters used to connect to Azure Blob Storage service.
+    """
+    config = {
+        'container_name': azure_blob_container_name,
+        'connection_string': azure_blob_config['connection_string'],
+    }
+    context = contextlib.nullcontext if should_mock_azure_blob else contextlib.nullcontext
+
+    with context():
+        yield config
+
+
+@pytest.fixture(scope='session')
+def config_psql_azure_blob(
+    config_psql_dos: t.Callable[[dict[str, t.Any] | None], dict[str, t.Any]],
+    azure_blob_storage: dict[str, str],
+) -> t.Callable[[dict[str, t.Any] | None], dict[str, t.Any]]:
+    """Return a profile configuration for the :class:`aiida_s3.storage.psql_azure_blob.PsqlAzureBlobStorage`."""
+
+    def factory(custom_configuration: dict[str, t.Any] | None = None) -> dict[str, t.Any]:
+        """Return a profile configuration for the :class:`aiida_s3.storage.psql_azure_blob.PsqlAzureBlobStorage`.
+
+        :param custom_configuration: Custom configuration to override default profile configuration.
+        :returns: The profile configuration.
+        """
+        configuration = config_psql_dos({})
+        recursive_merge(configuration, {'storage': {'backend': 's3.psql_azure_blob', 'config': {**azure_blob_storage}}})
+        recursive_merge(configuration, custom_configuration or {})
+        return configuration
+
+    return factory
+
+
+@pytest.fixture(scope='session')
+def psql_azure_blob_profile(
+    should_mock_azure_blob,
+    aiida_profile_factory,
+    config_psql_azure_blob,
+    azure_blob_storage,
+) -> t.Generator[Profile, None, None]:
+    """Return a test profile configured for the :class:`aiida_s3.storage.psql_azure_blob.PsqlAzureBlobStorage`."""
+    from aiida_s3.repository.azure_blob import AzureBlobStorageRepositoryBackend
+    try:
+        yield aiida_profile_factory(config_psql_azure_blob())
+    finally:
+        if not should_mock_azure_blob:
+            repository = AzureBlobStorageRepositoryBackend(**azure_blob_storage)
+            repository.erase()
+
+
 @pytest.fixture
 def generate_directory(tmp_path: pathlib.Path) -> t.Callable:
     """Construct a temporary directory with some arbitrary file hierarchy in it."""
