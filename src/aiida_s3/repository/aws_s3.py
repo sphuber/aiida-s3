@@ -77,7 +77,7 @@ class AwsS3RepositoryBackend(AbstractRepositoryBackend):
         self._client.create_bucket(Bucket=self._bucket_name, **kwargs)
 
     @property
-    def uuid(self) -> str | None:
+    def uuid(self) -> str:
         """Return the unique identifier of the repository."""
         return self._bucket_name
 
