@@ -115,6 +115,11 @@ disable = [
     'too-many-arguments',
 ]
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    'ignore:Creating AiiDA configuration folder.*:UserWarning'
+]
+
 [tool.yapf]
 align_closing_bracket_with_visual_indent = true
 based_on_style = 'google'
