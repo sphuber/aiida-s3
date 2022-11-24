@@ -184,6 +184,17 @@ def should_mock_azure_blob() -> bool:
     return os.getenv('AIIDA_S3_MOCK_AZURE_BLOB', default) == default
 
 
+@pytest.fixture(autouse=True)
+def skip_if_azure_mocked(request, should_mock_azure_blob):
+    """Skip if connection to Azure Blob storage should be mocked.
+
+    Currently, it is not yet possible to successfully mock the Azure Blob storage, so the tests can only be run if
+    proper credentials to the service are provided.
+    """
+    if request.node.get_closest_marker('skip_if_azure_mocked') and should_mock_azure_blob:
+        pytest.skip('skipped because client is mocked')
+
+
 @pytest.fixture(scope='session')
 def azure_blob_container_name(should_mock_azure_blob) -> str:
     """Return the name of the container used for this session.
@@ -270,15 +281,20 @@ def psql_azure_blob_profile(
     aiida_profile_factory,
     config_psql_azure_blob,
     azure_blob_storage,
-) -> t.Generator[Profile, None, None]:
+) -> t.Generator[Profile, None, None] | None:
     """Return a test profile configured for the :class:`aiida_s3.storage.psql_azure_blob.PsqlAzureBlobStorage`."""
     from aiida_s3.repository.azure_blob import AzureBlobStorageRepositoryBackend
+
+    if should_mock_azure_blob:
+        # Azure cannot yet be successfully mocked, so if we are mocking, skip the test.
+        yield None
+        return
+
     try:
         yield aiida_profile_factory(config_psql_azure_blob())
     finally:
-        if not should_mock_azure_blob:
-            repository = AzureBlobStorageRepositoryBackend(**azure_blob_storage)
-            repository.erase()
+        repository = AzureBlobStorageRepositoryBackend(**azure_blob_storage)
+        repository.erase()
 
 
 @pytest.fixture

@@ -9,6 +9,8 @@ import pytest
 
 from aiida_s3.repository.azure_blob import AzureBlobStorageRepositoryBackend
 
+pytestmark = pytest.mark.skip_if_azure_mocked
+
 
 @pytest.fixture(scope='function')
 def repository_uninitialised(azure_blob_config) -> t.Generator[AzureBlobStorageRepositoryBackend, None, None]:
