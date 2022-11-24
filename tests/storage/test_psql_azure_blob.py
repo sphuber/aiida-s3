@@ -9,6 +9,8 @@ import pytest
 from aiida_s3.repository.azure_blob import AzureBlobStorageRepositoryBackend
 from aiida_s3.storage.psql_azure_blob import PsqlAzureBlobStorage
 
+pytestmark = pytest.mark.skip_if_azure_mocked
+
 
 def test_get_repository(psql_azure_blob_profile):
     """Test the :meth:`aiida_s3.repository.azure_blob.AzureBlobStorageRepositoryBackend.get_repository` method."""
