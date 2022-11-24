@@ -1,0 +1,43 @@
+name: azure-blob
+
+on:
+    workflow_dispatch:
+        inputs:
+            container_name:
+                description: 'Azure Blob storage container name'
+                required: true
+                default: 'aiida-s3-test-container'
+
+jobs:
+
+    tests:
+
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+
+        steps:
+        -   uses: actions/checkout@v2
+
+        -   name: Cache Python dependencies
+            id: cache-pip
+            uses: actions/cache@v1
+            with:
+                path: ~/.cache/pip
+                key: pip-${{ matrix.python-version }}-tests-${{ hashFiles('**/setup.json') }}
+                restore-keys:
+                    pip-${{ matrix.python-version }}-tests
+
+        -   name: Install Python 3.10
+            uses: actions/setup-python@v2
+            with:
+                python-version: '3.10'
+
+        -   name: Install Python package and dependencies
+            run: pip install -e .[tests]
+
+        -   name: Run pytest
+            env:
+                AIIDA_S3_MOCK_AZURE_BLOB: False
+                AZURE_BLOB_CONNECTION_STRING: ${{ secrets.AZURE_BLOB_CONNECTION_STRING }}
+                AZURE_BLOB_CONTAINER_NAME: ${{ github.event.inputs.container_name }}
+            run: pytest -sv tests
