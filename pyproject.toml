@@ -121,6 +121,9 @@ disable = [
 filterwarnings = [
     'ignore:Creating AiiDA configuration folder.*:UserWarning'
 ]
+markers = [
+    'skip_if_azure_mocked: Skip if the Azure client is mocked, which is not supporte yet',
+]
 
 [tool.yapf]
 align_closing_bracket_with_visual_indent = true
