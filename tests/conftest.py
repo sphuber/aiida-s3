@@ -4,8 +4,12 @@
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import os
 import pathlib
+import subprocess
+import sys
+import types
 import typing as t
 import uuid
 
@@ -29,6 +33,75 @@ def recursive_merge(left: dict[t.Any, t.Any], right: dict[t.Any, t.Any]) -> None
             recursive_merge(left[key], value)
         else:
             left[key] = value
+
+
+@dataclasses.dataclass
+class CliResult:
+    """Dataclass representing the result of a command line interface invocation."""
+
+    stderr_bytes: bytes
+    stdout_bytes: bytes
+    exc_info: tuple[t.Type[BaseException], BaseException, types.TracebackType] | tuple[None, None,
+                                                                                       None] = (None, None, None)
+    exception: BaseException | None = None
+    exit_code: int | None = 0
+
+    @property
+    def stdout(self) -> str:
+        """Return the output that was written to stdout."""
+        return self.stdout_bytes.decode('utf-8', 'replace').replace('\r\n', '\n')
+
+    @property
+    def stderr(self) -> str:
+        """Return the output that was written to stderr."""
+        return self.stderr_bytes.decode('utf-8', 'replace').replace('\r\n', '\n')
+
+    @property
+    def output_lines(self) -> list[str]:
+        """Return the output that was written to stdout as a list of lines."""
+        return self.stdout.split('\n')
+
+
+@pytest.fixture
+def run_cli_command():
+    """Run a ``click`` command with the given options.
+
+    The call will raise if the command triggered an exception or the exit code returned is non-zero.
+    """
+
+    def factory(arguments: list[str], raises: bool = False) -> CliResult:
+        """Run the command and check the result.
+
+        :param arguments: The command line arguments to invoke.
+        :param raises: Boolean, if ``True``, the command should raise an exception.
+        :returns: Instance of ``CliResult``.
+        :raises AssertionError: If the command excepted and ``raises == True``, or if the command doesn't except and
+            ``raises == False``.
+        """
+        try:
+            completed_process = subprocess.run(arguments, capture_output=True, check=True)
+        except subprocess.CalledProcessError as exception:
+            result = CliResult(
+                exc_info=sys.exc_info(),
+                exception=exception,
+                exit_code=exception.returncode,
+                stderr_bytes=exception.stderr,
+                stdout_bytes=exception.stdout,
+            )
+        else:
+            result = CliResult(
+                stderr_bytes=completed_process.stderr,
+                stdout_bytes=completed_process.stdout,
+            )
+
+        if raises:
+            assert result.exception is not None, result.stdout
+        else:
+            assert result.exception is None, result.stderr
+
+        return result
+
+    return factory
 
 
 @pytest.fixture(scope='session')

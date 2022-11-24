@@ -47,6 +47,9 @@ tests = [
     'pytest~=6.2',
 ]
 
+[project.scripts]
+aiida-s3 = "aiida_s3.cli:cmd_root"
+
 [project.entry-points.'aiida.storage']
 's3.psql_aws_s3' = 'aiida_s3.storage.psql_aws_s3:PsqlAwsS3Storage'
 's3.psql_azure_blob' = 'aiida_s3.storage.psql_azure_blob:PsqlAzureBlobStorage'
