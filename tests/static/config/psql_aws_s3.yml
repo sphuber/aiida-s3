@@ -1,0 +1,12 @@
+---
+profile_name: 'psql-aws-s3'
+postgresql_engine: 'postgresql_psycopg2'
+postgresql_hostname : 'localhost'
+postgresql_port : 5432
+postgresql_username: 'aiida'
+postgresql_password : 'password'
+postgresql_database_name: 'aiida_psql_aws_s3'
+aws_bucket_name : 'aiida-s3-bucket'
+aws_access_key_id: 'access-key-id'
+aws_secret_access_key: 'secret-access-key'
+aws_region_name: 'eu-central-1'

@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """Implementation of :class:`aiida.orm.implementation.storage_backend.StorageBackend` using PostgreSQL + Azure."""
-from aiida.storage.psql_dos import PsqlDosBackend
+from __future__ import annotations
+
+import typing as t
+
 from aiida.storage.psql_dos.migrator import PsqlDosMigrator
 
 from ..repository.azure_blob import AzureBlobStorageRepositoryBackend
+from .psql_dos import BasePsqlDosBackend
 
 
 class PsqlAzureBlobStorageMigrator(PsqlDosMigrator):
@@ -50,8 +54,8 @@ class PsqlAzureBlobStorageMigrator(PsqlDosMigrator):
         )
 
 
-class PsqlAzureBlobStorage(PsqlDosBackend):
-    """Implementation of :class:`aiida.orm.implementation.storage_backend.StorageBackend` using PostgreSQL + Azure."""
+class PsqlAzureBlobStorage(BasePsqlDosBackend):
+    """Storage backend using PostgresSQL and Azure Blob Storage."""
 
     migrator = PsqlAzureBlobStorageMigrator
 
@@ -61,3 +65,25 @@ class PsqlAzureBlobStorage(PsqlDosBackend):
         :returns: The repository of the configured profile.
         """
         return self.migrator(self.profile).get_repository()
+
+    @classmethod
+    def _get_cli_options(cls) -> dict[str, t.Any]:
+        """Return the CLI options that would allow to create an instance of this class."""
+        options = super()._get_cli_options()
+        options.update(
+            **{
+                'container_name': {
+                    'required': True,
+                    'type': str,
+                    'prompt': 'Container name',
+                    'help': 'The Azure Blob Storage container name.',
+                },
+                'connection_string': {
+                    'required': True,
+                    'type': str,
+                    'prompt': 'Connection string',
+                    'help': 'The Azure Blob Storage connection string.',
+                }
+            }
+        )
+        return options

@@ -16,6 +16,7 @@ import uuid
 from aiida.manage.configuration.profile import Profile
 import boto3
 import botocore
+import click
 import moto
 import pytest
 
@@ -68,30 +69,59 @@ def run_cli_command():
 
     The call will raise if the command triggered an exception or the exit code returned is non-zero.
     """
+    from aiida_s3.cli import cmd_root
 
-    def factory(arguments: list[str], raises: bool = False) -> CliResult:
+    def factory(
+        arguments: list[str] | None = None,
+        base_command: click.Command = cmd_root,
+        raises: bool = False,
+        use_subprocess: bool = True
+    ) -> CliResult:
         """Run the command and check the result.
 
-        :param arguments: The command line arguments to invoke.
+        :param arguments: The command line arguments to pass to the invocation.
+        :param base_command: The base command to invoke.
         :param raises: Boolean, if ``True``, the command should raise an exception.
+        :param use_subprocess: Boolean, if ``True``, runs the command in a subprocess, otherwise it is run in the same
+            interpreter using :class:`click.testing.CliRunner`. The advantage of running in a subprocess is that it
+            simulates exactly what a user would invoke through the CLI. The test runner provided by ``click`` invokes
+            commands in a way that is not always a 100% analogous to an actual CLI call and so tests may not cover the
+            exact behavior. However, if a test monkeypatches the behavior of code that is called by the command being
+            tested, then a subprocess cannot be used, since the monkeypatch only applies to the current interpreter. In
+            these cases it is necessary to set ``use_subprocesses = False``.
         :returns: Instance of ``CliResult``.
         :raises AssertionError: If the command excepted and ``raises == True``, or if the command doesn't except and
             ``raises == False``.
         """
-        try:
-            completed_process = subprocess.run(arguments, capture_output=True, check=True)
-        except subprocess.CalledProcessError as exception:
-            result = CliResult(
-                exc_info=sys.exc_info(),
-                exception=exception,
-                exit_code=exception.returncode,
-                stderr_bytes=exception.stderr,
-                stdout_bytes=exception.stdout,
-            )
+        from click.testing import CliRunner
+
+        if use_subprocess:
+            command = [base_command.name] if base_command.name else []
+            command += (arguments or [])
+
+            try:
+                completed_process = subprocess.run(command, capture_output=True, check=True)
+            except subprocess.CalledProcessError as exception:
+                result = CliResult(
+                    exc_info=sys.exc_info(),
+                    exception=exception,
+                    exit_code=exception.returncode,
+                    stderr_bytes=exception.stderr,
+                    stdout_bytes=exception.stdout,
+                )
+            else:
+                result = CliResult(
+                    stderr_bytes=completed_process.stderr,
+                    stdout_bytes=completed_process.stdout,
+                )
         else:
+            result_click = CliRunner(mix_stderr=False).invoke(base_command, arguments or [])
             result = CliResult(
-                stderr_bytes=completed_process.stderr,
-                stdout_bytes=completed_process.stdout,
+                exc_info=result_click.exc_info or (None, None, None),
+                exception=result_click.exception,
+                exit_code=result_click.exit_code,
+                stderr_bytes=result_click.stderr_bytes or b'',
+                stdout_bytes=result_click.stdout_bytes,
             )
 
         if raises:
