@@ -17,7 +17,7 @@ __all__ = ('AwsS3RepositoryBackend',)
 class AwsS3RepositoryBackend(AbstractRepositoryBackend):
     """Implementation of the ``AbstractRepositoryBackend`` using S3 as the backend."""
 
-    def __init__(self, bucket_name: str, aws_access_key_id: str, aws_secret_access_key: str, region_name: str):
+    def __init__(self, bucket_name: str, aws_access_key_id: str, aws_secret_access_key: str, region_name: str, endpoint_url: str | None = None):
         """Construct a new instance for a given bucket.
 
         .. note:: It is possible to construct an instance for a bucket that doesn't exist yet. To use the backend,
@@ -36,6 +36,7 @@ class AwsS3RepositoryBackend(AbstractRepositoryBackend):
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             region_name=region_name,
+            endpoint_url=endpoint_url,
         )
 
     def __str__(self) -> str:

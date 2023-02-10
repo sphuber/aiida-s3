@@ -49,12 +49,14 @@ class PsqlAwsS3StorageMigrator(PsqlDosMigrator):
         aws_access_key_id: str = storage_config['aws_access_key_id']
         aws_secret_access_key: str = storage_config['aws_secret_access_key']
         region_name: str = storage_config['aws_region_name']
+        endpoint_url: str | None = storage_config['endpoint_url'] if 'endpoint_url' in storage_config else None
 
         return AwsS3RepositoryBackend(
             bucket_name=bucket_name,
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             region_name=region_name,
+            endpoint_url=endpoint_url,
         )
 
 
@@ -99,6 +101,12 @@ class PsqlAwsS3Storage(BasePsqlDosBackend):
                     'type': str,
                     'prompt': 'AWS region',
                     'help': 'The AWS region name code, e.g., `eu-central-1`.',
+                },
+                'endpoint_url': {
+                    'required': False,
+                    'type': str,
+                    'prompt': 'S3 API endpoint',
+                    'help': 'Endpoint for supporting alternative S3 API providers'
                 }
             }
         )
