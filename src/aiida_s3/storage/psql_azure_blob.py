@@ -4,21 +4,13 @@ from __future__ import annotations
 
 import typing as t
 
-from aiida.storage.psql_dos.migrator import PsqlDosMigrator
-
 from ..repository.azure_blob import AzureBlobStorageRepositoryBackend
 from .psql_dos import BasePsqlDosBackend
+from .psql_s3 import PsqlS3StorageMigrator
 
 
-class PsqlAzureBlobStorageMigrator(PsqlDosMigrator):
+class PsqlAzureBlobStorageMigrator(PsqlS3StorageMigrator):
     """Subclass :class:`aiida.storage.psql_dos.migrator.PsqlDosMigrator` to customize the repository implementation."""
-
-    def get_repository_uuid(self) -> str:
-        """Return the UUID of the repository.
-
-        :returns: The UUID of the repository of the configured profile.
-        """
-        return self.get_repository().uuid
 
     def reset_repository(self) -> None:
         """Reset the repository deleting the bucket and all its contents."""
@@ -26,31 +18,16 @@ class PsqlAzureBlobStorageMigrator(PsqlDosMigrator):
         if repository.is_initialised:
             repository.delete_objects(repository.list_objects())
 
-    def initialise_repository(self) -> None:
-        """Initialise the repository."""
-        repository = self.get_repository()
-        repository.initialise()
-
-    @property
-    def is_repository_initialised(self) -> bool:
-        """Return whether the repository is initialised.
-
-        :returns: Boolean, ``True`` if the repository is initalised, ``False`` otherwise.
-        """
-        return self.get_repository().is_initialised
-
-    def get_repository(self) -> AzureBlobStorageRepositoryBackend:
+    def get_repository(self) -> AzureBlobStorageRepositoryBackend:  # type: ignore[override]
         """Return the file repository backend instance.
 
         :returns: The repository of the configured profile.
         """
         storage_config = self.profile.storage_config
-        container_name: str = storage_config['container_name']
-        connection_string: str = storage_config['connection_string']
 
         return AzureBlobStorageRepositoryBackend(
-            container_name=container_name,
-            connection_string=connection_string,
+            container_name=storage_config['container_name'],
+            connection_string=storage_config['connection_string'],
         )
 
 

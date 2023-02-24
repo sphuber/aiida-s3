@@ -45,13 +45,14 @@ pre-commit = [
 tests = [
     'moto[s3]',
     'pgtest~=1.3,>=1.3.1',
-    'pytest~=6.2',
+    'pytest~=7.2',
 ]
 
 [project.scripts]
 aiida-s3 = "aiida_s3.cli:cmd_root"
 
 [project.entry-points.'aiida.storage']
+'s3.psql_s3' = 'aiida_s3.storage.psql_s3:PsqlS3Storage'
 's3.psql_aws_s3' = 'aiida_s3.storage.psql_aws_s3:PsqlAwsS3Storage'
 's3.psql_azure_blob' = 'aiida_s3.storage.psql_azure_blob:PsqlAzureBlobStorage'
 
@@ -106,6 +107,11 @@ ignore = [
     'D104',
     'D203',
     'D213'
+]
+
+[tool.pylint.basic]
+good-names = [
+    's3',
 ]
 
 [tool.pylint.master]

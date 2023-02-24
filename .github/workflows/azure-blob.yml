@@ -38,6 +38,6 @@ jobs:
         -   name: Run pytest
             env:
                 AIIDA_S3_MOCK_AZURE_BLOB: False
-                AZURE_BLOB_CONNECTION_STRING: ${{ secrets.AZURE_BLOB_CONNECTION_STRING }}
-                AZURE_BLOB_CONTAINER_NAME: ${{ github.event.inputs.container_name }}
+                AIIDA_S3_AZURE_BLOB_CONNECTION_STRING: ${{ secrets.AZURE_BLOB_CONNECTION_STRING }}
+                AIIDA_S3_AZURE_BLOB_CONTAINER_NAME: ${{ github.event.inputs.container_name }}
             run: pytest -sv tests
