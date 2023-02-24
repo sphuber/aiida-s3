@@ -113,8 +113,15 @@ class AwsS3RepositoryBackend(AbstractRepositoryBackend):
         :return: list of booleans, in the same order as the keys provided, with value True if the respective object
             exists and False otherwise.
         """
-        existing_keys = set(self.list_objects())
-        return [key in existing_keys for key in keys]
+        res = []
+        for key in keys:
+            existing_key = True
+            try:
+                self._client.head_object(Bucket=self._bucket_name, Key=key)
+            except botocore.exceptions.ClientError as e:
+                existing_key = False
+            res.append(existing_key)
+        return res
 
     @contextlib.contextmanager
     def open(self, key: str) -> t.Iterator[t.IO[bytes]]:  # type: ignore[override]
@@ -129,10 +136,14 @@ class AwsS3RepositoryBackend(AbstractRepositoryBackend):
         :raise OSError: if the file could not be opened.
         """
         super().open(key)
-        with tempfile.TemporaryFile() as handle:
-            self._client.download_fileobj(self._bucket_name, key, handle)
-            handle.seek(0)
-            yield handle
+        try:
+            with tempfile.TemporaryFile() as handle:
+                self._client.download_fileobj(self._bucket_name, key, handle)
+                handle.seek(0)
+                yield handle
+        except botocore.exceptions.ClientError:
+            raise FileNotFoundError(f'object with key `{key}` does not exist.')
+
 
     def iter_object_streams(self, keys: list[str]) -> t.Iterator[tuple[str, t.IO[bytes]]]:  # type: ignore[override]
         """Return an iterator over the (read-only) byte streams of objects identified by key.
