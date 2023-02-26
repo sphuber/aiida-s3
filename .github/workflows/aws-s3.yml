@@ -38,7 +38,7 @@ jobs:
         -   name: Run pytest
             env:
                 AIIDA_S3_MOCK_AWS_S3: False
-                AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                AWS_REGION_NAME: ${{ github.event.inputs.region_name }}
+                AIIDA_S3_AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                AIIDA_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                AIIDA_S3_AWS_REGION_NAME: ${{ github.event.inputs.region_name }}
             run: pytest -sv tests

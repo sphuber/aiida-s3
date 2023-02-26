@@ -1,32 +1,32 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
-"""Tests for the :mod:`aiida_s3.repository.aws_s3` module."""
+"""Tests for the :mod:`aiida_s3.repository.s3` module."""
 import io
 import typing as t
 import uuid
 
 import pytest
 
-from aiida_s3.repository.aws_s3 import AwsS3RepositoryBackend
+from aiida_s3.repository.s3 import S3RepositoryBackend
 
 
 @pytest.fixture(scope='function')
-def repository_uninitialised(aws_s3_config) -> t.Generator[AwsS3RepositoryBackend, None, None]:
-    """Return uninitialised instance of :class:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend`."""
-    repository = AwsS3RepositoryBackend(bucket_name=str(uuid.uuid4()), **aws_s3_config)
+def repository_uninitialised(s3_config) -> t.Generator[S3RepositoryBackend, None, None]:
+    """Return uninitialised instance of :class:`aiida_s3.repository.s3.S3RepositoryBackend`."""
+    repository = S3RepositoryBackend(bucket_name=str(uuid.uuid4()), **s3_config)
     yield repository
 
 
 @pytest.fixture(scope='function')
-def repository(aws_s3_bucket_name, aws_s3_config) -> t.Generator[AwsS3RepositoryBackend, None, None]:
-    """Return initialised instance of :class:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend`."""
-    repository = AwsS3RepositoryBackend(bucket_name=aws_s3_bucket_name, **aws_s3_config)
+def repository(s3_bucket_name, s3_config) -> t.Generator[S3RepositoryBackend, None, None]:
+    """Return initialised instance of :class:`aiida_s3.repository.s3.S3RepositoryBackend`."""
+    repository = S3RepositoryBackend(bucket_name=s3_bucket_name, **s3_config)
     repository.initialise()
     yield repository
 
 
 def test_initialise(repository_uninitialised):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.initialise` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.initialise` method."""
     repository = repository_uninitialised
     assert not repository.is_initialised
 
@@ -39,17 +39,17 @@ def test_initialise(repository_uninitialised):
 
 
 def test_uuid(repository):
-    """Test the :prop:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.uuid` property."""
+    """Test the :prop:`aiida_s3.repository.s3.S3RepositoryBackend.uuid` property."""
     assert repository.uuid == repository._bucket_name  # pylint: disable=protected-access
 
 
 def test_key_format(repository):
-    """Test the :prop:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.key_format` property."""
+    """Test the :prop:`aiida_s3.repository.s3.S3RepositoryBackend.key_format` property."""
     assert repository.key_format == 'uuid4'
 
 
 def test_erase(repository, generate_directory):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.erase` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.erase` method."""
     directory = generate_directory({'file_a': None})
 
     with open(directory / 'file_a', 'rb') as handle:
@@ -63,7 +63,7 @@ def test_erase(repository, generate_directory):
 
 
 def test_erase_uninitialised(repository_uninitialised):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.erase` method for uninitialised repo.
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.erase` method for uninitialised repo.
 
     The method should not fail if the configure bucket does not exist.
     """
@@ -71,7 +71,7 @@ def test_erase_uninitialised(repository_uninitialised):
 
 
 def test_put_object_from_filelike_raises(repository, generate_directory):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.put_object_from_filelike`.
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.put_object_from_filelike`.
 
     Test invocations for which the method should raise an exception.
     """
@@ -89,7 +89,7 @@ def test_put_object_from_filelike_raises(repository, generate_directory):
 
 
 def test_put_object_from_filelike(repository, generate_directory):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.put_object_from_filelike` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.put_object_from_filelike` method."""
     directory = generate_directory({'file_a': None})
 
     with open(directory / 'file_a', 'rb') as handle:
@@ -99,7 +99,7 @@ def test_put_object_from_filelike(repository, generate_directory):
 
 
 def test_has_objects(repository, generate_directory):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.has_objects` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.has_objects` method."""
     directory = generate_directory({'file_a': None})
 
     assert repository.has_objects(['non_existant']) == [False]
@@ -111,7 +111,7 @@ def test_has_objects(repository, generate_directory):
 
 
 def test_open_raise(repository):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.open` method.
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.open` method.
 
     Test invocations for which the method should raise an exception.
     """
@@ -121,7 +121,7 @@ def test_open_raise(repository):
 
 
 def test_open(repository, generate_directory):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.open` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.open` method."""
     directory = generate_directory({'file_a': b'content_a', 'relative': {'file_b': b'content_b'}})
 
     with open(directory / 'file_a', 'rb') as handle:
@@ -141,7 +141,7 @@ def test_open(repository, generate_directory):
 
 
 def test_iter_object_streams(repository):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.iter_object_streams` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.iter_object_streams` method."""
     key = repository.put_object_from_filelike(io.BytesIO(b'content'))
 
     for _key, stream in repository.iter_object_streams([key]):
@@ -150,7 +150,7 @@ def test_iter_object_streams(repository):
 
 
 def test_delete_objects(repository, generate_directory):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.delete_objects` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.delete_objects` method."""
     directory = generate_directory({'file_a': None})
 
     with open(directory / 'file_a', 'rb') as handle:
@@ -166,7 +166,7 @@ def test_delete_objects(repository, generate_directory):
 
 
 def test_get_object_hash(repository, generate_directory):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.get_object_hash` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.get_object_hash` method."""
     directory = generate_directory({'file_a': b'content'})
 
     with open(directory / 'file_a', 'rb') as handle:
@@ -176,7 +176,7 @@ def test_get_object_hash(repository, generate_directory):
 
 
 def test_list_objects(repository, generate_directory):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.list_objects` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.list_objects` method."""
     keys = []
 
     # First empty the repository because other tests may have added objects to it.
@@ -195,10 +195,10 @@ def test_list_objects(repository, generate_directory):
 
 
 def test_get_info(repository):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.get_info` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.get_info` method."""
     assert repository.get_info() == {}
 
 
 def test_maintain(repository):
-    """Test the :meth:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.maintain` method."""
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.maintain` method."""
     assert repository.maintain() == {}

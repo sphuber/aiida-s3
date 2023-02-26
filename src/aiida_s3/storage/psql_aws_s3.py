@@ -4,40 +4,13 @@ from __future__ import annotations
 
 import typing as t
 
-from aiida.storage.psql_dos.migrator import PsqlDosMigrator
-
 from ..repository.aws_s3 import AwsS3RepositoryBackend
 from .psql_dos import BasePsqlDosBackend
+from .psql_s3 import PsqlS3StorageMigrator
 
 
-class PsqlAwsS3StorageMigrator(PsqlDosMigrator):
+class PsqlAwsS3StorageMigrator(PsqlS3StorageMigrator):
     """Subclass :class:`aiida.storage.psql_dos.migrator.PsqlDosMigrator` to customize the repository implementation."""
-
-    def get_repository_uuid(self) -> str:
-        """Return the UUID of the repository.
-
-        :returns: The UUID of the repository of the configured profile.
-        """
-        return self.get_repository().uuid
-
-    def reset_repository(self) -> None:
-        """Reset the repository deleting the bucket and all its contents."""
-        repository = self.get_repository()
-        if repository.is_initialised:
-            repository.erase()
-
-    def initialise_repository(self) -> None:
-        """Initialise the repository."""
-        repository = self.get_repository()
-        repository.initialise()
-
-    @property
-    def is_repository_initialised(self) -> bool:
-        """Return whether the repository is initialised.
-
-        :returns: Boolean, ``True`` if the repository is initalised, ``False`` otherwise.
-        """
-        return self.get_repository().is_initialised
 
     def get_repository(self) -> AwsS3RepositoryBackend:
         """Return the file repository backend instance.
@@ -45,16 +18,12 @@ class PsqlAwsS3StorageMigrator(PsqlDosMigrator):
         :returns: The repository of the configured profile.
         """
         storage_config = self.profile.storage_config
-        bucket_name: str = storage_config['aws_bucket_name']
-        aws_access_key_id: str = storage_config['aws_access_key_id']
-        aws_secret_access_key: str = storage_config['aws_secret_access_key']
-        region_name: str = storage_config['aws_region_name']
 
         return AwsS3RepositoryBackend(
-            bucket_name=bucket_name,
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key,
-            region_name=region_name,
+            aws_access_key_id=storage_config['aws_access_key_id'],
+            aws_secret_access_key=storage_config['aws_secret_access_key'],
+            region_name=storage_config['aws_region_name'],
+            bucket_name=storage_config['aws_bucket_name'],
         )
 
 
@@ -76,12 +45,6 @@ class PsqlAwsS3Storage(BasePsqlDosBackend):
         options = super()._get_cli_options()
         options.update(
             **{
-                'aws_bucket_name': {
-                    'required': True,
-                    'type': str,
-                    'prompt': 'AWS bucket name',
-                    'help': 'The name of the AWS S3 bucket to use.',
-                },
                 'aws_access_key_id': {
                     'required': True,
                     'type': str,
@@ -99,7 +62,13 @@ class PsqlAwsS3Storage(BasePsqlDosBackend):
                     'type': str,
                     'prompt': 'AWS region',
                     'help': 'The AWS region name code, e.g., `eu-central-1`.',
-                }
+                },
+                'aws_bucket_name': {
+                    'required': True,
+                    'type': str,
+                    'prompt': 'AWS bucket name',
+                    'help': 'The name of the AWS S3 bucket to use.',
+                },
             }
         )
         return options

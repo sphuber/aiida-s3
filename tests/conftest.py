@@ -135,6 +135,146 @@ def run_cli_command():
 
 
 @pytest.fixture(scope='session')
+def should_mock_s3() -> bool:
+    """Return whether the S3 client should be mocked this session or not.
+
+    Returns the boolean equivalent of the ``AIIDA_S3_MOCK_S3`` environment variable. If it is not defined, ``True``
+    is returned by default.
+
+    :return: Boolean as to whether the S3 client connection should be mocked.
+    """
+    default = 'True'
+    return os.getenv('AIIDA_S3_MOCK_S3', default) == default
+
+
+@pytest.fixture(scope='session')
+def s3_bucket_name(should_mock_s3) -> str:
+    """Return the name of the bucket used for this session.
+
+    Returns the value defined by the ``AIIDA_S3_BUCKET_NAME`` environment variable if defined and ``AIIDA_S3_MOCK_S3``
+    is set to ``True``, otherwise generates a random name based on :func:`uuid.uuid4`.
+
+    :return: Name of the bucket used for this session.
+    """
+    default = str(uuid.uuid4())
+    return os.getenv('AIIDA_S3_BUCKET_NAME', default) if not should_mock_s3 else default
+
+
+@pytest.fixture(scope='session')
+def s3_config(should_mock_s3) -> dict:
+    """Return a dictionary with S3 credentials.
+
+    The credentials are taken from the ``AIIDA_S3_ENDPOINT_URL``, ``AIIDA_S3_ACCESS_KEY_ID`` and
+    ``AIIDA_S3_SECRET_ACCESS_KEY`` environment variables, if and only if ``AIIDA_S3_MOCK_S3`` is set to ``True``,
+    otherwise mocked values will be enforced.
+
+    :return: Dictionary with parameters needed to initialize an S3 client. Contains the keys ``endpoint_url``,
+    ``access_key_id`` and ``secret_access_key``.
+    """
+    return {
+        'endpoint_url': os.getenv('AIIDA_S3_ENDPOINT_URL', 'localhost:9000') if not should_mock_s3 else None,
+        'access_key_id': os.getenv('AIIDA_S3_ACCESS_KEY_ID') if not should_mock_s3 else 'mocked',
+        'secret_access_key': os.getenv('AIIDA_S3_SECRET_ACCESS_KEY') if not should_mock_s3 else 'mocked',
+    }
+
+
+@pytest.fixture(scope='session', autouse=True)
+def s3(should_mock_s3, s3_bucket_name, s3_config) -> t.Generator[dict, None, None]:
+    """Return the S3 connection configuration for the session.
+
+    The return value is a dictionary with the following keys:
+
+        * `endpoint_url`
+        * `access_key_id`
+        * `secret_access_key`
+        * `bucket_name`
+
+    These values are provided by the ``s3_bucket_name`` and ``s3_config`` fixtures, respectively. See their
+    documentation how to specify access credentials using environment variables.
+
+    Unless ``AIIDA_S3_MOCK_S3`` is set to ``True``, the S3 client will be mocked for the entire session using
+    the ``moto`` library.
+
+    :return: Dictionary with the connection parameters used to connect to S3.
+    """
+    config = {
+        'endpoint_url': s3_config['endpoint_url'],
+        'access_key_id': s3_config['access_key_id'],
+        'secret_access_key': s3_config['secret_access_key'],
+        'bucket_name': s3_bucket_name,
+    }
+    context = moto.mock_s3 if should_mock_s3 else contextlib.nullcontext
+
+    with context():
+        yield config
+
+
+@pytest.fixture(scope='session')
+def s3_client(s3) -> botocore.client.BaseClient:
+    """Return an S3 client for the session.
+
+    A client using ``boto3`` will be initialised if and only if ``AIIDA_S3_MOCK_S3`` is set to ``True``. Otherwise
+    the client will be mocked using ``moto``. The connection details will be provided by the dictionary returned by the
+    ``s3`` session fixture.
+
+    This client will use the bucket defined by the ``s3_bucket_name`` fixture and will clean it up at the end of the
+    session. This means that when using this fixture, the cleanup is automatic. Note, however, that if other buckets are
+    created, the tests bare the responsibility of cleaning those up themselves.
+    """
+    bucket_name = s3['bucket_name']
+    client = boto3.client(
+        's3',
+        endpoint_url=s3['endpoint_url'],
+        access_key_id=s3['access_key_id'],
+        secret_access_key=s3['secret_access_key'],
+    )
+
+    try:
+        yield client
+    finally:
+        try:
+            client.head_bucket(Bucket=bucket_name)
+        except botocore.exceptions.ClientError:
+            pass
+        else:
+            response = client.list_objects(Bucket=bucket_name)
+            objects = response['Contents'] if 'Contents' in response else ()
+
+            if objects:
+                delete = {'Objects': [{'Key': obj['Key']} for obj in objects]}
+                client.delete_objects(Bucket=bucket_name, Delete=delete)
+
+            client.delete_bucket(Bucket=bucket_name)
+
+
+@pytest.fixture(scope='session')
+def config_psql_s3(
+    config_psql_dos: t.Callable[[dict[str, t.Any] | None], dict[str, t.Any]],
+    s3: dict[str, str],
+) -> t.Callable[[dict[str, t.Any] | None], dict[str, t.Any]]:
+    """Return a profile configuration for the :class:`aiida_s3.storage.psql_s3.PsqlS3Storage`."""
+
+    def factory(custom_configuration: dict[str, t.Any] | None = None) -> dict[str, t.Any]:
+        """Return a profile configuration for the :class:`aiida_s3.storage.psql_s3.PsqlS3Storage`.
+
+        :param custom_configuration: Custom configuration to override default profile configuration.
+        :returns: The profile configuration.
+        """
+        configuration = config_psql_dos({})
+        recursive_merge(configuration, {'storage': {'backend': 's3.psql_s3', 'config': {**s3}}})
+        recursive_merge(configuration, custom_configuration or {})
+        return configuration
+
+    return factory
+
+
+@pytest.fixture(scope='session')
+def psql_s3_profile(aiida_profile_factory, config_psql_s3) -> t.Generator[Profile, None, None]:
+    """Return a test profile configured for the :class:`aiida_s3.storage.psql_s3.PsqlS3Storage`."""
+    yield aiida_profile_factory(config_psql_s3())
+
+
+@pytest.fixture(scope='session')
 def should_mock_aws_s3() -> bool:
     """Return whether the AWS S3 client should be mocked this session or not.
 
@@ -151,13 +291,13 @@ def should_mock_aws_s3() -> bool:
 def aws_s3_bucket_name(should_mock_aws_s3) -> str:
     """Return the name of the bucket used for this session.
 
-    Returns the value defined by the ``AWS_BUCKET_NAME`` environment variable if defined and ``AIIDA_S3_MOCK_AWS_S3`` is
-    set to ``True``, otherwise generates a random name based on :func:`uuid.uuid4`.
+    Returns the value defined by the ``AIIDA_S3_AWS_BUCKET_NAME`` environment variable if defined and
+    ``AIIDA_S3_MOCK_AWS_S3`` is set to ``True``, otherwise generates a random name based on :func:`uuid.uuid4`.
 
     :return: Name of the bucket used for this session.
     """
     default = str(uuid.uuid4())
-    return os.getenv('AWS_BUCKET_NAME', default) if not should_mock_aws_s3 else default
+    return os.getenv('AIIDA_S3_AWS_BUCKET_NAME', default) if not should_mock_aws_s3 else default
 
 
 @pytest.fixture(scope='session')
@@ -172,9 +312,9 @@ def aws_s3_config(should_mock_aws_s3) -> dict:
         ``aws_secret_access_key`` and ``region_name``.
     """
     return {
-        'aws_access_key_id': os.getenv('AWS_ACCESS_KEY_ID') if not should_mock_aws_s3 else 'mocked',
-        'aws_secret_access_key': os.getenv('AWS_SECRET_ACCESS_KEY') if not should_mock_aws_s3 else 'mocked',
-        'region_name': os.getenv('AWS_REGION_NAME', 'eu-central-1') if not should_mock_aws_s3 else 'mocked',
+        'aws_access_key_id': os.getenv('AIIDA_S3_AWS_ACCESS_KEY_ID') if not should_mock_aws_s3 else 'mocked',
+        'aws_secret_access_key': os.getenv('AIIDA_S3_AWS_SECRET_ACCESS_KEY') if not should_mock_aws_s3 else 'mocked',
+        'region_name': os.getenv('AIIDA_S3_AWS_REGION_NAME', 'eu-central-1') if not should_mock_aws_s3 else 'mocked',
     }
 
 
@@ -302,27 +442,28 @@ def skip_if_azure_mocked(request, should_mock_azure_blob):
 def azure_blob_container_name(should_mock_azure_blob) -> str:
     """Return the name of the container used for this session.
 
-    Returns the value defined by the ``AZURE_BLOB_CONTAINER_NAME`` environment variable if defined and
+    Returns the value defined by the ``AIIDA_S3_AZURE_BLOB_CONTAINER_NAME`` environment variable if defined and
     ``AIIDA_S3_MOCK_AZURE_BLOB`` is set to ``True``, otherwise generates a random name based on :func:`uuid.uuid4`.
 
     :return: Name of the container used for this session.
     """
     default = str(uuid.uuid4())
-    return os.getenv('AZURE_BLOB_CONTAINER_NAME', default) if not should_mock_azure_blob else default
+    return os.getenv('AIIDA_S3_AZURE_BLOB_CONTAINER_NAME', default) if not should_mock_azure_blob else default
 
 
 @pytest.fixture(scope='session')
 def azure_blob_config(should_mock_azure_blob) -> dict:
     """Return a dictionary with Azure Blob Storage credentials.
 
-    The credentials are taken from the ``AZURE_BLOB_CONNECTION_STRING`` environment variable, if and only if
+    The credentials are taken from the ``AIIDA_S3_AZURE_BLOB_CONNECTION_STRING`` environment variable, if and only if
     ``AIIDA_S3_MOCK_AZURE_BLOB`` is set to ``True``, otherwise mocked values will be enforced.
 
     :return: Dictionary with parameters needed to initialize an Azure Blob Storage client. Contains the key
         ``connection_string``.
     """
     return {
-        'connection_string': os.getenv('AZURE_BLOB_CONNECTION_STRING') if not should_mock_azure_blob else 'mocked',
+        'connection_string':
+        os.getenv('AIIDA_S3_AZURE_BLOB_CONNECTION_STRING') if not should_mock_azure_blob else 'mocked',
     }
 
 

@@ -58,6 +58,53 @@ The plugin provides interfaces to various services that require credentials, suc
 To run the test suite, one has to provide these credentials or the services have to be mocked.
 Instructions for each service that is supported are provided below.
 
+### S3
+
+The base S3 implementation is interfaced with through the [`boto3`](https://pypi.org/project/boto3/) Python SDK.
+The [`moto`](https://pypi.org/project/moto/) library allows to mock this interface.
+This makes it possible to run the test suite without any credentials.
+To run the tests, simply execute `pytest`:
+
+    pytest
+
+By default, the interactions with S3 are mocked through `moto` and no actual credentials are required.
+To run the tests against an actual S3 server, the endpoint URL and credentials need to be specified through environment variables:
+
+    export AIIDA_S3_MOCK_S3=False
+    export AIIDA_S3_ENDPOINT_URL='http://localhost:9000'
+    export AIIDA_S3_BUCKET_NAME='some-bucket'
+    export AIIDA_S3_ACCESS_KEY_ID='access-key'
+    export AIIDA_S3_SECRET_ACCESS_KEY='secret-access-key'
+    pytest
+
+One example of an open source implementation of a S3-compatible object store is [minIO](https://min.io/).
+An instance can easily be created locally using Docker and `docker-compose`.
+Simply write the following to `docker-compose.yml`:
+
+    version: '2'
+
+    services:
+      minio:
+        container_name: Minio
+        command: server /data --console-address ":9001"
+        environment:
+          - MINIO_ROOT_USER=admin
+          - MINIO_ROOT_PASSWORD=supersecret
+        image: quay.io/minio/minio:latest
+        ports:
+          - '9000:9000'
+          - '9001:9001'
+        volumes:
+          - /tmp/minio:/data
+        restart: unless-stopped
+
+and then launch the container with:
+
+    docker-compose up -d
+
+The tests can then be run against the server using environment variables as described above.
+
+
 ### AWS S3
 
 The [AWS S3](https://aws.amazon.com/s3/) service is interfaced with through the [`boto3`](https://pypi.org/project/boto3/) Python SDK.
@@ -71,9 +118,9 @@ By default, the interactions with AWS S3 are mocked through `moto` and no actual
 To run the tests against an actual AWS S3 container, the credentials need to be specified through environment variables:
 
     export AIIDA_S3_MOCK_AWS_S3=False
-    export AWS_BUCKET_NAME='some-bucket'
-    export AWS_ACCESS_KEY_ID='access-key'
-    export AWS_SECRET_ACCESS_KEY='secret-access-key'
+    export AIIDA_S3_AWS_BUCKET_NAME='some-bucket'
+    export AIIDA_S3_AWS_ACCESS_KEY_ID='access-key'
+    export AIIDA_S3_AWS_SECRET_ACCESS_KEY='secret-access-key'
     pytest
 
 
@@ -85,8 +132,8 @@ Therefore, when the tests are run without credentials, and so the Azure Blob Sto
 To run the tests against an actual AWS S3 container, the credentials need to be specified through environment variables:
 
     export AIIDA_S3_MOCK_AZURE_BLOB=False
-    export AZURE_BLOB_CONTAINER_NAME='some-container'
-    export AZURE_BLOB_CONNECTION_STRING='DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net'
+    export AIIDA_S3_AZURE_BLOB_CONTAINER_NAME='some-container'
+    export AIIDA_S3_AZURE_BLOB_CONNECTION_STRING='DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net'
     pytest
 
 The specified container does not have to exist yet, it will be created automatically.
