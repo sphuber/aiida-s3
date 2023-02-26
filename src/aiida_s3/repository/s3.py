@@ -162,7 +162,7 @@ class S3RepositoryBackend(AbstractRepositoryBackend):
         if 'Contents' not in response:
             yield from ()
         else:
-            for obj in self._client.list_objects(Bucket=self._bucket_name)['Contents']:
+            for obj in response['Contents']:
                 yield obj['Key']
 
     def maintain(  # type: ignore[override]
