@@ -121,11 +121,13 @@ class S3RepositoryBackend(AbstractRepositoryBackend):
         :raise FileNotFoundError: if the file does not exist.
         :raise OSError: if the file could not be opened.
         """
-        super().open(key)
-        with tempfile.TemporaryFile() as handle:
-            self._client.download_fileobj(self._bucket_name, key, handle)
-            handle.seek(0)
-            yield handle
+        try:
+            with tempfile.TemporaryFile() as handle:
+                self._client.download_fileobj(self._bucket_name, key, handle)
+                handle.seek(0)
+                yield handle
+        except botocore.exceptions.ClientError as exception:
+            raise FileNotFoundError(f'object with key `{key}` does not exist.') from exception
 
     def iter_object_streams(self, keys: list[str]) -> t.Iterator[tuple[str, t.IO[bytes]]]:  # type: ignore[override]
         """Return an iterator over the (read-only) byte streams of objects identified by key.
