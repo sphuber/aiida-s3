@@ -126,8 +126,8 @@ class S3RepositoryBackend(AbstractRepositoryBackend):
                 self._client.download_fileobj(self._bucket_name, key, handle)
                 handle.seek(0)
                 yield handle
-        except botocore.exceptions.ClientError:
-            raise FileNotFoundError(f'object with key `{key}` does not exist.')
+        except botocore.exceptions.ClientError as exception:
+            raise FileNotFoundError(f'object with key `{key}` does not exist.') from exception
 
     def iter_object_streams(self, keys: list[str]) -> t.Iterator[tuple[str, t.IO[bytes]]]:  # type: ignore[override]
         """Return an iterator over the (read-only) byte streams of objects identified by key.
