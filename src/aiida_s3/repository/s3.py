@@ -159,12 +159,16 @@ class S3RepositoryBackend(AbstractRepositoryBackend):
 
         :return: An iterable for all the available object keys.
         """
-        response = self._client.list_objects(Bucket=self._bucket_name)
+        kwargs = {'Bucket': self._bucket_name}
+        paginator = self._client.get_paginator('list_objects_v2')
 
-        if 'Contents' not in response:
-            yield from ()
-        else:
-            for obj in response['Contents']:
+        for page in paginator.paginate(**kwargs):
+            try:
+                contents = page['Contents']
+            except KeyError:
+                break
+
+            for obj in contents:
                 yield obj['Key']
 
     def maintain(  # type: ignore[override]
