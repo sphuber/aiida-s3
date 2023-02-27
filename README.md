@@ -4,6 +4,7 @@ AiiDA plugin that provides various storage backends that allow using cloud data 
 
 Currently, the following storage backends are available:
 
+* `s3.psql_s3`: Database provided by PostgreSQL and file repository provided by any service implementing the S3 protocol, for example [minIO](https://min.io).
 * `s3.psql_aws_s3`: Database provided by PostgreSQL and file repository provided by [AWS S3](https://aws.amazon.com/s3/).
 * `s3.psql_azure_blob`: Database provided by PostgreSQL and file repository provided by [Azure Blob Storage](https://azure.microsoft.com/en-us/products/storage/blobs/).
 
@@ -25,11 +26,10 @@ To use one of the storage backends provided by `aiida-s3` with AiiDA, you need t
 
 1.  Create a profile using one of the available storage backends by passing it as an argument to `aiida-s3 profile setup`, for example:
     ```bash
-    aiida-s3 profile setup psql-aws-s3
+    aiida-s3 profile setup s3.psql_s3
     ```
     The command will prompt for the information required to setup the storage backend.
     After all information is entered, the storage backend is initialized, such as creating the database schema and creating file containers.
-    If
 
 1.  Create a default user for the profile:
     ```bash
@@ -44,7 +44,7 @@ To use one of the storage backends provided by `aiida-s3` with AiiDA, you need t
 
 1.  Optionally, to test that everything is working as intended, launch a test calculation:
     ```bash
-    verdi devel launch-add
+    verdi -p profile-name devel launch-add
     ```
 
 ## Testing
