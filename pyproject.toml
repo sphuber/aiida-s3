@@ -32,7 +32,10 @@ dependencies = [
 ]
 
 [project.urls]
-Source = 'https://github.com/sphuber/aiida-s3'
+source = 'https://github.com/sphuber/aiida-s3'
+documentation = 'https://github.com/sphuber/aiida-s3/blob/master/README.md'
+changelog = 'https://github.com/sphuber/aiida-s3/blob/master/CHANGELOG.md'
+tracker = 'https://github.com/sphuber/aiida-s3/issues'
 
 [project.optional-dependencies]
 pre-commit = [
