@@ -105,7 +105,7 @@ jobs:
     publish:
 
         name: Publish to PyPI
-        needs: [ubuntu]
+        needs: [pre-commit, tests]
         runs-on: ubuntu-20.04
 
         steps:
