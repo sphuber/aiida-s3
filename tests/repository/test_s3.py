@@ -194,6 +194,34 @@ def test_list_objects(repository, generate_directory):
     assert sorted(list(repository.list_objects())) == sorted(keys)
 
 
+def test_list_objects_empty(repository):
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.list_objects` method for an empty repository."""
+    # First empty the repository because other tests may have added objects to it.
+    repository.erase()
+    repository.initialise()
+    assert not list(repository.list_objects())
+
+
+def test_list_objects_many(repository):
+    """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.list_objects` method for many existing objects.
+
+    The ``boto3.client.list_objects_v2`` method will not return all objects by default but results are paginated. The
+    default page size is a 1000, so here we test creating a repo with more than a 1000 and check that ``list_objects``
+    returns all of them.
+    """
+    keys = []
+
+    # First empty the repository because other tests may have added objects to it.
+    repository.erase()
+    repository.initialise()
+
+    # Create more than 1000 objects to ensure there are at least two pages of results.
+    for _ in range(1010):
+        keys.append(repository.put_object_from_filelike(io.BytesIO(b'a')))
+
+    assert sorted(list(repository.list_objects())) == sorted(keys)
+
+
 def test_get_info(repository):
     """Test the :meth:`aiida_s3.repository.s3.S3RepositoryBackend.get_info` method."""
     assert repository.get_info() == {}
