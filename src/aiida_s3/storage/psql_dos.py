@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import collections
 
-from aiida.plugins.entry_point import EntryPoint
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from aiida.plugins.entry_point import EntryPoint
+
 from aiida.storage.psql_dos import PsqlDosBackend
 
 
