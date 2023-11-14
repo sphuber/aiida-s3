@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: 'v4.5.0'
+  rev: v4.5.0
   hooks:
   - id: check-merge-conflict
   - id: check-yaml
@@ -11,13 +11,21 @@ repos:
     args: [--fix=lf]
   - id: trailing-whitespace
 
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v2.11.0
+  hooks:
+  - id: pretty-format-toml
+    args: [--autofix]
+  - id: pretty-format-yaml
+    args: [--autofix]
+
 - repo: https://github.com/ikamensh/flynt/
-  rev: '1.0.1'
+  rev: 1.0.1
   hooks:
   - id: flynt
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: 'v0.1.5'
+  rev: v0.1.5
   hooks:
   - id: ruff-format
   - id: ruff

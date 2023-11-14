@@ -1,10 +1,9 @@
----
-profile_name: 'psql-azure-blob'
-postgresql_engine: 'postgresql_psycopg2'
-postgresql_hostname : 'localhost'
-postgresql_port : 5432
-postgresql_username: 'aiida'
-postgresql_password : 'password'
-postgresql_database_name: 'aiida_psql_azure_blob'
-container_name : 'aiida-s3-container'
-connection_string: 'connection-string'
+profile_name: psql-azure-blob
+postgresql_engine: postgresql_psycopg2
+postgresql_hostname: localhost
+postgresql_port: 5432
+postgresql_username: aiida
+postgresql_password: password
+postgresql_database_name: aiida_psql_azure_blob
+container_name: aiida-s3-container
+connection_string: connection-string
