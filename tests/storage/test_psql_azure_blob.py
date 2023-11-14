@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
 """Tests for the :mod:`aiida_s3.storage.psql_azure_blob` module."""
 import io
 
-from aiida import orm
 import pytest
-
+from aiida import orm
 from aiida_s3.repository.azure_blob import AzureBlobStorageRepositoryBackend
 from aiida_s3.storage.psql_azure_blob import PsqlAzureBlobStorage
 

@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
 """Tests for the :mod:`aiida_s3.cli.cmd_profile` module."""
 import pathlib
 
-from aiida.plugins import StorageFactory
 import pytest
 import yaml
+from aiida.plugins import StorageFactory
 
 
 def filepath_config():

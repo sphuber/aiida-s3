@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Implementation of :class:`aiida.orm.implementation.storage_backend.StorageBackend` using PostgreSQL + S3."""
 from __future__ import annotations
 

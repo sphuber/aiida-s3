@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Implementation of the :py:`aiida.repository.backend.abstract.AbstractRepositoryBackend` using Azure Blob Storage."""
 from __future__ import annotations
 
@@ -122,7 +121,7 @@ class AzureBlobStorageRepositoryBackend(AbstractRepositoryBackend):
         with tempfile.TemporaryFile(mode='w+b') as handle:
             try:
                 self._container_client.download_blob(key).readinto(handle)
-            except Exception as exception:  # pylint: disable=broad-except
+            except Exception as exception:
                 raise FileNotFoundError(f'object with key `{key}` does not exist.') from exception
             handle.seek(0)
             yield handle
@@ -160,16 +159,15 @@ class AzureBlobStorageRepositoryBackend(AbstractRepositoryBackend):
         for name in self._container_client.list_blob_names():
             yield name
 
-    def maintain(  # type: ignore[override]
+    def maintain(  # type: ignore[override]  # noqa: PLR0913
         self,
         dry_run: bool = False,
         live: bool = True,
-        pack_loose: bool = None,
-        do_repack: bool = None,
-        clean_storage: bool = None,
-        do_vacuum: bool = None,
+        pack_loose: bool | None = None,
+        do_repack: bool | None = None,
+        clean_storage: bool | None = None,
+        do_vacuum: bool | None = None,
     ) -> dict:
-        # pylint: disable=arguments-differ, unused-argument
         """Perform maintenance operations.
 
         :param live: if True, will only perform operations that are safe to do while the repository is in use.
@@ -185,6 +183,5 @@ class AzureBlobStorageRepositoryBackend(AbstractRepositoryBackend):
         self,
         detailed=False,
     ) -> dict[str, int | str | dict[str, int] | dict[str, float]]:
-        # pylint: disable=arguments-differ, unused-argument
         """Return information on configuration and content of the repository."""
         return {}

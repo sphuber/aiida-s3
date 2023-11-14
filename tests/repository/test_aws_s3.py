@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
 """Tests for the :mod:`aiida_s3.repository.aws_s3` module."""
 import io
@@ -6,7 +5,6 @@ import typing as t
 import uuid
 
 import pytest
-
 from aiida_s3.repository.aws_s3 import AwsS3RepositoryBackend
 
 
@@ -40,7 +38,7 @@ def test_initialise(repository_uninitialised):
 
 def test_uuid(repository):
     """Test the :prop:`aiida_s3.repository.aws_s3.AwsS3RepositoryBackend.uuid` property."""
-    assert repository.uuid == repository._bucket_name  # pylint: disable=protected-access
+    assert repository.uuid == repository._bucket_name
 
 
 def test_key_format(repository):

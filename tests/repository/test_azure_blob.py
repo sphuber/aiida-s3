@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
 """Tests for the :mod:`aiida_s3.repository.azure_blob` module."""
 import io
@@ -6,7 +5,6 @@ import typing as t
 import uuid
 
 import pytest
-
 from aiida_s3.repository.azure_blob import AzureBlobStorageRepositoryBackend
 
 pytestmark = pytest.mark.skip_if_azure_mocked
@@ -48,7 +46,7 @@ def test_initialise(repository_uninitialised):
 
 def test_uuid(repository):
     """Test the :prop:`aiida_s3.repository.azure_blob.AzureBlobStorageRepositoryBackend.uuid` property."""
-    assert repository.uuid == repository._container_name  # pylint: disable=protected-access
+    assert repository.uuid == repository._container_name
 
 
 def test_key_format(repository):

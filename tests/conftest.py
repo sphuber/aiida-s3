@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
 """Test fixtures for the :mod:`aiida_s3` module."""
 from __future__ import annotations
@@ -13,14 +12,14 @@ import types
 import typing as t
 import uuid
 
-from aiida.manage.configuration.profile import Profile
 import boto3
 import botocore
 import click
 import moto
 import pytest
+from aiida.manage.configuration.profile import Profile
 
-pytest_plugins = ['aiida.manage.tests.pytest_fixtures']  # pylint: disable=invalid-name
+pytest_plugins = ['aiida.manage.tests.pytest_fixtures']
 
 
 def recursive_merge(left: dict[t.Any, t.Any], right: dict[t.Any, t.Any]) -> None:
@@ -30,7 +29,7 @@ def recursive_merge(left: dict[t.Any, t.Any], right: dict[t.Any, t.Any]) -> None
     :param right: Dictionary to recurisvely merge on top of ``left`` dictionary.
     """
     for key, value in right.items():
-        if (key in left and isinstance(left[key], dict) and isinstance(value, dict)):
+        if key in left and isinstance(left[key], dict) and isinstance(value, dict):
             recursive_merge(left[key], value)
         else:
             left[key] = value
@@ -42,8 +41,11 @@ class CliResult:
 
     stderr_bytes: bytes
     stdout_bytes: bytes
-    exc_info: tuple[t.Type[BaseException], BaseException, types.TracebackType] | tuple[None, None,
-                                                                                       None] = (None, None, None)
+    exc_info: tuple[t.Type[BaseException], BaseException, types.TracebackType] | tuple[None, None, None] = (
+        None,
+        None,
+        None,
+    )
     exception: BaseException | None = None
     exit_code: int | None = 0
 
@@ -75,7 +77,7 @@ def run_cli_command():
         arguments: list[str] | None = None,
         base_command: click.Command = cmd_root,
         raises: bool = False,
-        use_subprocess: bool = True
+        use_subprocess: bool = True,
     ) -> CliResult:
         """Run the command and check the result.
 
@@ -97,7 +99,7 @@ def run_cli_command():
 
         if use_subprocess:
             command = [base_command.name] if base_command.name else []
-            command += (arguments or [])
+            command += arguments or []
 
             try:
                 completed_process = subprocess.run(command, capture_output=True, check=True)
@@ -462,8 +464,9 @@ def azure_blob_config(should_mock_azure_blob) -> dict:
         ``connection_string``.
     """
     return {
-        'connection_string':
-        os.getenv('AIIDA_S3_AZURE_BLOB_CONNECTION_STRING') if not should_mock_azure_blob else 'mocked',
+        'connection_string': os.getenv('AIIDA_S3_AZURE_BLOB_CONNECTION_STRING')
+        if not should_mock_azure_blob
+        else 'mocked',
     }
 
 
@@ -545,7 +548,7 @@ def psql_azure_blob_profile(
 def generate_directory(tmp_path: pathlib.Path) -> t.Callable:
     """Construct a temporary directory with some arbitrary file hierarchy in it."""
 
-    def _factory(metadata: dict = None) -> pathlib.Path:
+    def _factory(metadata: dict | None = None) -> pathlib.Path:
         """Construct the contents of the temporary directory based on the metadata mapping.
 
         :param: file object hierarchy to construct. Each key corresponds to either a directory or file to create. If the
@@ -578,7 +581,6 @@ def generate_directory(tmp_path: pathlib.Path) -> t.Callable:
         def create_files(basepath: pathlib.Path, data: dict):
             """Construct the files in data at the given basepath."""
             for key, values in data.items():
-
                 filepath = basepath / key
 
                 if isinstance(values, dict):

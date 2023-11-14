@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """CLI commands to create profiles."""
 from aiida.cmdline.groups import DynamicEntryPointCommandGroup
 
@@ -10,7 +9,7 @@ def cmd_profile():
     """Commands to create profiles."""
 
 
-def create_profile(cls, non_interactive, **kwargs):  # pylint: disable=unused-argument
+def create_profile(cls, non_interactive, **kwargs):
     """Set up a new profile with an ``aiida-s3`` storage backend."""
     import contextlib
     import io
@@ -29,7 +28,7 @@ def create_profile(cls, non_interactive, **kwargs):  # pylint: disable=unused-ar
                 'database_username': kwargs.pop('postgresql_username'),
                 'database_password': kwargs.pop('postgresql_password'),
                 'database_name': kwargs.pop('postgresql_database_name'),
-            }
+            },
         },
         'process_control': {
             'backend': 'rabbitmq',
@@ -39,8 +38,8 @@ def create_profile(cls, non_interactive, **kwargs):  # pylint: disable=unused-ar
                 'broker_password': 'guest',
                 'broker_host': '127.0.0.1',
                 'broker_port': 5672,
-                'broker_virtual_host': ''
-            }
+                'broker_virtual_host': '',
+            },
         },
     }
 
@@ -58,7 +57,7 @@ def create_profile(cls, non_interactive, **kwargs):  # pylint: disable=unused-ar
     try:
         with contextlib.redirect_stdout(io.StringIO()):
             profile.storage_cls.initialise(profile)
-    except Exception as exception:  # pylint: disable=broad-except
+    except Exception as exception:
         echo.echo_critical(
             f'Storage backend initialisation failed, probably because connection details are incorrect:\n{exception}'
         )
@@ -74,7 +73,7 @@ def create_profile(cls, non_interactive, **kwargs):  # pylint: disable=unused-ar
     cls=DynamicEntryPointCommandGroup,
     command=create_profile,
     entry_point_group='aiida.storage',
-    entry_point_name_filter=r's3\..*'
+    entry_point_name_filter=r's3\..*',
 )
 def cmd_profile_setup():
     """Set up a new profile with an ``aiida-s3`` storage backend."""

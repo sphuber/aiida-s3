@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Implementation of :class:`aiida.orm.implementation.storage_backend.StorageBackend` using PostgreSQL + Azure."""
 from __future__ import annotations
 
@@ -60,7 +59,7 @@ class PsqlAzureBlobStorage(BasePsqlDosBackend):
                     'type': str,
                     'prompt': 'Connection string',
                     'help': 'The Azure Blob Storage connection string.',
-                }
+                },
             }
         )
         return options
