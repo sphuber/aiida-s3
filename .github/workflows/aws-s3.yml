@@ -1,37 +1,37 @@
 name: aws-s3
 
 on:
-    workflow_dispatch:
-        inputs:
-            region_name:
-                description: 'AWS region name'
-                required: true
-                default: 'eu-central-1'
+  workflow_dispatch:
+    inputs:
+      region_name:
+        description: AWS region name
+        required: true
+        default: eu-central-1
 
 jobs:
 
-    tests:
+  tests:
 
-        runs-on: ubuntu-latest
-        timeout-minutes: 10
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
-        steps:
-        -   uses: actions/checkout@v2
+    steps:
+    - uses: actions/checkout@v2
 
-        -   name: Install Python
-            uses: actions/setup-python@v4
-            with:
-                python-version: '3.10'
-                cache: 'pip'
-                cache-dependency-path: pyproject.toml
+    - name: Install Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: pip
+        cache-dependency-path: pyproject.toml
 
-        -   name: Install Python package and dependencies
-            run: pip install -e .[tests]
+    - name: Install Python package and dependencies
+      run: pip install -e .[tests]
 
-        -   name: Run pytest
-            env:
-                AIIDA_S3_MOCK_AWS_S3: False
-                AIIDA_S3_AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                AIIDA_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                AIIDA_S3_AWS_REGION_NAME: ${{ github.event.inputs.region_name }}
-            run: pytest -sv tests
+    - name: Run pytest
+      env:
+        AIIDA_S3_MOCK_AWS_S3: false
+        AIIDA_S3_AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AIIDA_S3_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AIIDA_S3_AWS_REGION_NAME: ${{ github.event.inputs.region_name }}
+      run: pytest -sv tests
