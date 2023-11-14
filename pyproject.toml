@@ -26,7 +26,7 @@ classifiers = [
 keywords = ['aiida', 'workflows', 's3']
 requires-python = '>=3.8'
 dependencies = [
-    'aiida-core~=2.2',
+    'aiida-core~=2.2,<2.4',
     'azure-storage-blob',
     'boto3',
 ]
@@ -41,8 +41,6 @@ tracker = 'https://github.com/sphuber/aiida-s3/issues'
 pre-commit = [
     'mypy==0.981',
     'pre-commit~=2.17',
-    'pylint~=2.12.2',
-    'pylint-aiida~=0.1.1',
     'types-pyyaml',
 ]
 tests = [
@@ -74,11 +72,28 @@ exclude = [
 line-length = 120
 fail-on-change = true
 
-[tool.isort]
-force_sort_within_sections = true
-include_trailing_comma = true
-line_length = 120
-multi_line_output = 3
+[tool.ruff]
+line-length = 120
+select = [
+    'E',    # pydocstyle
+    'W',    # pydocstyle
+    'F',    # pyflakes
+    'I',    # isort
+    'N',    # pep8-naming
+    'D',    # pydocstyle
+    'PLC',  # pylint-convention
+    'PLE',  # pylint-error
+    'PLR',  # pylint-refactor
+    'PLW',  # pylint-warning
+    'RUF',  # ruff
+]
+ignore = [
+    'D203',  # Incompatible with D211 `no-blank-line-before-class`
+    'D213',  # Incompatible with D212 `multi-line-summary-second-line`
+]
+
+[tool.ruff.format]
+quote-style = 'single'
 
 [tool.mypy]
 show_error_codes = true
@@ -88,7 +103,6 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 no_warn_no_return = true
 show_traceback = true
-install-types = true
 
 [[tool.mypy.overrides]]
 module = 'aiida_s3.*'
@@ -96,6 +110,7 @@ check_untyped_defs = true
 
 [[tool.mypy.overrides]]
 module = [
+    'azure.*',
     'boto3.*',
     'botocore.*',
     'moto.*',
@@ -105,32 +120,6 @@ module = [
 ]
 ignore_missing_imports = true
 
-[tool.pydocstyle]
-ignore = [
-    'D104',
-    'D203',
-    'D213'
-]
-
-[tool.pylint.basic]
-good-names = [
-    's3',
-]
-
-[tool.pylint.master]
-load-plugins = ['pylint_aiida']
-
-[tool.pylint.format]
-max-line-length = 120
-
-[tool.pylint.messages_control]
-disable = [
-    'bad-continuation',
-    'duplicate-code',
-    'import-outside-toplevel',
-    'too-many-arguments',
-]
-
 [tool.pytest.ini_options]
 filterwarnings = [
     'ignore:Creating AiiDA configuration folder.*:UserWarning'
@@ -138,12 +127,3 @@ filterwarnings = [
 markers = [
     'skip_if_azure_mocked: Skip if the Azure client is mocked, which is not supporte yet',
 ]
-
-[tool.yapf]
-align_closing_bracket_with_visual_indent = true
-based_on_style = 'google'
-coalesce_brackets = true
-column_limit = 120
-dedent_closing_brackets = true
-indent_dictionary_value = false
-split_arguments_when_comma_terminated = true

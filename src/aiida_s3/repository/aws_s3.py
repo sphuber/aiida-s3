@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Implementation of the :py:`aiida.repository.backend.abstract.AbstractRepositoryBackend` using AWS S3 as backend."""
 from __future__ import annotations
 
@@ -24,7 +23,6 @@ class AwsS3RepositoryBackend(S3RepositoryBackend):
         :param region_name: The AWS region name to create the bucket in if it doesn't yet exist.
         :param bucket_name: The name of the bucket to use.
         """
-        # pylint: disable=super-init-not-called
         self._bucket_name = bucket_name
         self._region_name = region_name
         self._client = boto3.client(

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Implementation of :class:`aiida.orm.implementation.storage_backend.StorageBackend` using PostgreSQL + AWS S3."""
 from __future__ import annotations
 
@@ -18,6 +17,7 @@ class BasePsqlDosBackend(PsqlDosBackend):
         :return: The entry point or ``None`` if not found.
         """
         from aiida.plugins.entry_point import get_entry_point_from_class
+
         return get_entry_point_from_class(cls.__module__, cls.__name__)[1]
 
     @classmethod
@@ -73,5 +73,5 @@ class BasePsqlDosBackend(PsqlDosBackend):
                 'type': str,
                 'prompt': 'Postgresql database name',
                 'help': 'The name of the database in the PostgreSQL server.',
-            }
+            },
         }
