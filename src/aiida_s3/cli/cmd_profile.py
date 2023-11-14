@@ -10,12 +10,12 @@ if t.TYPE_CHECKING:
     from aiida.orm.implementation.storage_backend import StorageBackend
 
 
-@cmd_root.group('profile')  # type: ignore[has-type]
-def cmd_profile():
+@cmd_root.group('profile')  # type: ignore[misc,has-type]
+def cmd_profile() -> None:
     """Commands to create profiles."""
 
 
-def create_profile(ctx: click.Context, cls: t.Type['StorageBackend'], non_interactive: bool, **kwargs):
+def create_profile(ctx: click.Context, cls: t.Type['StorageBackend'], non_interactive: bool, **kwargs: t.Any) -> None:
     """Set up a new profile with an ``aiida-s3`` storage backend."""
     import contextlib
     import io
@@ -81,12 +81,12 @@ def create_profile(ctx: click.Context, cls: t.Type['StorageBackend'], non_intera
     echo.echo_success(f'Created new profile `{profile.name}`.')
 
 
-@cmd_profile.group(
+@cmd_profile.group(  # type: ignore[misc]
     'setup',
     cls=DynamicEntryPointCommandGroup,
     command=create_profile,
     entry_point_group='aiida.storage',
     entry_point_name_filter=r's3\..*',
 )
-def cmd_profile_setup():
+def cmd_profile_setup() -> None:
     """Set up a new profile with an ``aiida-s3`` storage backend."""

@@ -535,13 +535,12 @@ def psql_azure_blob_profile(
     if should_mock_azure_blob:
         # Azure cannot yet be successfully mocked, so if we are mocking, skip the test.
         yield None
-        return
-
-    try:
-        yield aiida_profile_factory(config_psql_azure_blob())
-    finally:
-        repository = AzureBlobStorageRepositoryBackend(**azure_blob_storage)
-        repository.erase()
+    else:
+        try:
+            yield aiida_profile_factory(config_psql_azure_blob())
+        finally:
+            repository = AzureBlobStorageRepositoryBackend(**azure_blob_storage)
+            repository.erase()
 
 
 @pytest.fixture

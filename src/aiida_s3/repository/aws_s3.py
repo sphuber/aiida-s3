@@ -1,6 +1,8 @@
 """Implementation of the :py:`aiida.repository.backend.abstract.AbstractRepositoryBackend` using AWS S3 as backend."""
 from __future__ import annotations
 
+import typing as t
+
 import boto3
 
 from .s3 import S3RepositoryBackend
@@ -36,7 +38,7 @@ class AwsS3RepositoryBackend(S3RepositoryBackend):
         """Return the string representation of this repository."""
         return f'AwsS3RepositoryBackend: <{self._bucket_name}>'
 
-    def initialise(self, **kwargs) -> None:
+    def initialise(self, **kwargs: t.Any) -> None:
         """Initialise the repository if it hasn't already been initialised.
 
         :param kwargs: parameters for the initialisation.

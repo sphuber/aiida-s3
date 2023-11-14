@@ -7,7 +7,7 @@ import typing as t
 from aiida.storage.psql_dos import PsqlDosBackend
 
 if t.TYPE_CHECKING:
-    from aiida.plugins.entry_point import EntryPoint
+    from importlib_metadata import EntryPoint
 
 
 class BasePsqlDosBackend(PsqlDosBackend):
@@ -24,12 +24,12 @@ class BasePsqlDosBackend(PsqlDosBackend):
         return get_entry_point_from_class(cls.__module__, cls.__name__)[1]
 
     @classmethod
-    def get_cli_options(cls) -> collections.OrderedDict:
+    def get_cli_options(cls) -> collections.OrderedDict[str, t.Any]:
         """Return the CLI options that would allow to create an instance of this class."""
         return collections.OrderedDict(cls._get_cli_options())
 
     @classmethod
-    def _get_cli_options(cls) -> dict:
+    def _get_cli_options(cls) -> dict[str, t.Any]:
         """Return the CLI options that would allow to create an instance of this class."""
         return {
             'profile_name': {

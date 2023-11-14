@@ -59,7 +59,7 @@ class S3RepositoryBackend(AbstractRepositoryBackend):
         """
         return self._bucket_exists
 
-    def initialise(self, **kwargs) -> None:
+    def initialise(self, **kwargs: t.Any) -> None:
         """Initialise the repository if it hasn't already been initialised.
 
         :param kwargs: parameters for the initialisation.
@@ -79,7 +79,7 @@ class S3RepositoryBackend(AbstractRepositoryBackend):
         """Return the format for the keys of the repository."""
         return 'uuid4'
 
-    def erase(self):
+    def erase(self) -> None:
         """Delete the bucket configured for this instance and all its contents."""
         if not self._bucket_exists:
             return
@@ -178,7 +178,7 @@ class S3RepositoryBackend(AbstractRepositoryBackend):
         do_repack: bool | None = None,
         clean_storage: bool | None = None,
         do_vacuum: bool | None = None,
-    ) -> dict:
+    ) -> dict[t.Any, t.Any]:
         """Perform maintenance operations.
 
         :param live: if True, will only perform operations that are safe to do while the repository is in use.
@@ -190,9 +190,6 @@ class S3RepositoryBackend(AbstractRepositoryBackend):
         """
         return {}
 
-    def get_info(  # type: ignore[override]
-        self,
-        detailed=False,
-    ) -> dict[str, int | str | dict[str, int] | dict[str, float]]:
+    def get_info(self, detailed: bool = False, **kwargs: t.Any) -> dict[t.Any, t.Any]:
         """Return information on configuration and content of the repository."""
         return {}

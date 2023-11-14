@@ -37,7 +37,7 @@ requires-python = '>=3.9'
 
 [project.optional-dependencies]
 pre-commit = [
-  'mypy==0.981',
+  'mypy==1.8.0',
   'pre-commit~=2.17',
   'types-pyyaml'
 ]
@@ -72,17 +72,11 @@ fail-on-change = true
 line-length = 120
 
 [tool.mypy]
-check_untyped_defs = true
-no_warn_no_return = true
-scripts_are_modules = true
-show_error_codes = true
-show_traceback = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-
-[[tool.mypy.overrides]]
-check_untyped_defs = true
-module = 'aiida_s3.*'
+disallow_untyped_calls = false
+exclude = [
+  '^tests/'
+]
+strict = true
 
 [[tool.mypy.overrides]]
 ignore_missing_imports = true

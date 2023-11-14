@@ -5,7 +5,7 @@ from aiida.cmdline.groups.verdi import VerdiCommandGroup
 
 
 @click.group('aiida-s3', cls=VerdiCommandGroup)
-def cmd_root():
+def cmd_root() -> None:
     """Command line interface for ``aiida-s3``."""
 
 
