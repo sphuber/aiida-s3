@@ -534,8 +534,7 @@ def psql_azure_blob_profile(
 
     if should_mock_azure_blob:
         # Azure cannot yet be successfully mocked, so if we are mocking, skip the test.
-        yield None
-        return
+        yield None  # type: ignore[return-value]
 
     try:
         yield aiida_profile_factory(config_psql_azure_blob())
