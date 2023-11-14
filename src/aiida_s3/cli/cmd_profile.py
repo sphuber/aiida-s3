@@ -1,7 +1,13 @@
 """CLI commands to create profiles."""
+import typing as t
+
+import click
 from aiida.cmdline.groups import DynamicEntryPointCommandGroup
 
 from . import cmd_root
+
+if t.TYPE_CHECKING:
+    from aiida.orm.implementation.storage_backend import StorageBackend
 
 
 @cmd_root.group('profile')  # type: ignore[has-type]
@@ -9,18 +15,25 @@ def cmd_profile():
     """Commands to create profiles."""
 
 
-def create_profile(cls, non_interactive, **kwargs):
+def create_profile(ctx: click.Context, cls: t.Type['StorageBackend'], non_interactive: bool, **kwargs):
     """Set up a new profile with an ``aiida-s3`` storage backend."""
     import contextlib
     import io
 
     from aiida.cmdline.utils import echo
+    from aiida.common.exceptions import EntryPointError
     from aiida.manage.configuration import Profile, get_config
+    from aiida.plugins.entry_point import get_entry_point_from_class
+
+    _, storage_entry_point = get_entry_point_from_class(cls.__module__, cls.__name__)
+
+    if storage_entry_point is None:
+        raise EntryPointError(f'`{cls}` does not have a registered entry point.')
 
     profile_name = kwargs.pop('profile_name')
     profile_config = {
         'storage': {
-            'backend': cls.get_entry_point().name,
+            'backend': storage_entry_point.name,
             'config': {
                 'database_engine': kwargs.pop('postgresql_engine'),
                 'database_hostname': kwargs.pop('postgresql_hostname'),
@@ -43,7 +56,7 @@ def create_profile(cls, non_interactive, **kwargs):
         },
     }
 
-    profile_config['storage']['config'].update(**kwargs)
+    profile_config['storage']['config'].update(**kwargs)  # type: ignore[attr-defined]
     profile = Profile(profile_name, profile_config)
 
     config = get_config()

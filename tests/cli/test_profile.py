@@ -18,7 +18,7 @@ def test_setup(aiida_instance, run_cli_command, monkeypatch, filepath_config):
     """Test the ``aiida-s3 profile setup`` command for all storage backends.
 
     This will just verify that the command accepts the ``--config`` option with a valid YAML file containing the options
-    for the command and that it creates a new profile. The command normallyn also initialises the storage backend but
+    for the command and that it creates a new profile. The command normally also initialises the storage backend but
     that usually requires credentials which are faked here and so the initialisation would fail. That is why the
     :meth:`aiida.orm.implementation.storage_backend.StorageBackend.initialise` method is monkeypatched to be a no-op.
     """

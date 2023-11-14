@@ -25,7 +25,7 @@ classifiers = [
 keywords = ['aiida', 'workflows', 's3']
 requires-python = '>=3.9'
 dependencies = [
-    'aiida-core~=2.2,<2.4',
+    'aiida-core~=2.4',
     'azure-storage-blob',
     'boto3',
 ]

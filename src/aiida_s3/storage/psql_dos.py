@@ -2,16 +2,19 @@
 from __future__ import annotations
 
 import collections
+import typing as t
 
-from aiida.plugins.entry_point import EntryPoint
 from aiida.storage.psql_dos import PsqlDosBackend
+
+if t.TYPE_CHECKING:
+    from aiida.plugins.entry_point import EntryPoint
 
 
 class BasePsqlDosBackend(PsqlDosBackend):
     """Storage backend using PostgresSQL and AWS S3."""
 
     @classmethod
-    def get_entry_point(cls) -> EntryPoint | None:
+    def get_entry_point(cls) -> 'EntryPoint' | None:
         """Return the entry point with which this storage backend implementation is registered.
 
         :return: The entry point or ``None`` if not found.
