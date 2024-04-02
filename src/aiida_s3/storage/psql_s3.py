@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import typing as t
+
 from aiida.storage.psql_dos.backend import PsqlDosBackend
 from aiida.storage.psql_dos.migrator import PsqlDosMigrator
 from pydantic import Field
@@ -58,7 +60,7 @@ class PsqlS3Storage(PsqlDosBackend):
 
     migrator = PsqlS3StorageMigrator
 
-    class Configuration(PsqlDosBackend.Configuration):
+    class Model(PsqlDosBackend.Model):
         """Model describing required information to configure an instance of the storage."""
 
         endpoint_url: str = Field(
@@ -77,6 +79,7 @@ class PsqlS3Storage(PsqlDosBackend):
             title='Bucket name',
             description='The name of the S3 bucket to use.',
         )
+        repository_uri: t.ClassVar[None]  # type: ignore[assignment,misc]
 
     def get_repository(self) -> S3RepositoryBackend:  # type: ignore[override]
         """Return the file repository backend instance.

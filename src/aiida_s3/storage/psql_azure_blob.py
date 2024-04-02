@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import typing as t
+
 from aiida.storage.psql_dos.backend import PsqlDosBackend
 from pydantic import Field
 
@@ -36,7 +38,7 @@ class PsqlAzureBlobStorage(PsqlDosBackend):
 
     migrator = PsqlAzureBlobStorageMigrator
 
-    class Configuration(PsqlDosBackend.Configuration):
+    class Model(PsqlDosBackend.Model):
         """Model describing required information to configure an instance of the storage."""
 
         container_name: str = Field(
@@ -47,6 +49,7 @@ class PsqlAzureBlobStorage(PsqlDosBackend):
             title='Connection string',
             description='The Azure Blob Storage connection string.',
         )
+        repository_uri: t.ClassVar[None]  # type: ignore[assignment,misc]
 
     def get_repository(self) -> AzureBlobStorageRepositoryBackend:  # type: ignore[override]
         """Return the file repository backend instance.
