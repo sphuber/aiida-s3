@@ -1,4 +1,5 @@
 """Implementation of :class:`aiida.orm.implementation.storage_backend.StorageBackend` using PostgreSQL + Azure."""
+
 from __future__ import annotations
 
 from aiida.storage.psql_dos.backend import PsqlDosBackend

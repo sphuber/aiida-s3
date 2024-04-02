@@ -1,4 +1,5 @@
 """Tests for the :mod:`aiida_s3` module."""
+
 import aiida_s3
 from packaging.version import Version, parse
 

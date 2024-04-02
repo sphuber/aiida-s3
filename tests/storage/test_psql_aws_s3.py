@@ -1,4 +1,5 @@
 """Tests for the :mod:`aiida_s3.storage.psql_aws_s3` module."""
+
 import io
 
 import pytest

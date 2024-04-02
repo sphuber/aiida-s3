@@ -1,4 +1,5 @@
 """Tests for ``verdi profile setup``."""
+
 import pathlib
 
 import pytest

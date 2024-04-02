@@ -1,4 +1,5 @@
 """Implementation of the :py:`aiida.repository.backend.abstract.AbstractRepositoryBackend` using Azure Blob Storage."""
+
 from __future__ import annotations
 
 import contextlib

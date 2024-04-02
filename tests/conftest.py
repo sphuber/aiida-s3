@@ -1,4 +1,5 @@
 """Test fixtures for the :mod:`aiida_s3` module."""
+
 from __future__ import annotations
 
 import contextlib

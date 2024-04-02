@@ -1,4 +1,5 @@
 """Tests for the :mod:`aiida_s3.repository.azure_blob` module."""
+
 import io
 import typing as t
 import uuid

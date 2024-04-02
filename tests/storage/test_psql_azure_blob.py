@@ -1,4 +1,5 @@
 """Tests for the :mod:`aiida_s3.storage.psql_azure_blob` module."""
+
 import io
 
 import pytest
