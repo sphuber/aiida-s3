@@ -1,10 +1,12 @@
 # pylint: disable=redefined-outer-name
-"""Tests for the :mod:`aiida_s3.cli.cmd_profile` module."""
+"""Tests for ``verdi profile setup``."""
 import pathlib
 
 import pytest
 import yaml
+from aiida.cmdline.commands.cmd_profile import profile_setup
 from aiida.plugins import StorageFactory
+from click.testing import CliRunner
 
 
 def filepath_config():
@@ -14,8 +16,8 @@ def filepath_config():
 
 
 @pytest.mark.parametrize('filepath_config', filepath_config())
-def test_setup(aiida_instance, run_cli_command, monkeypatch, filepath_config):
-    """Test the ``aiida-s3 profile setup`` command for all storage backends.
+def test_setup(aiida_manager, aiida_instance, monkeypatch, filepath_config):
+    """Test the ``verdi profile setup`` command for all storage backends.
 
     This will just verify that the command accepts the ``--config`` option with a valid YAML file containing the options
     for the command and that it creates a new profile. The command normally also initialises the storage backend but
@@ -27,12 +29,12 @@ def test_setup(aiida_instance, run_cli_command, monkeypatch, filepath_config):
 
     entry_point = f's3.{filepath_config.stem}'
     cls = StorageFactory(entry_point)
-    profile_name = profile_config['profile_name']
+    profile_name = profile_config['profile']
 
     monkeypatch.setattr(cls, 'initialise', lambda *args: True)
+    monkeypatch.setattr(cls, 'read_only', True)
+    monkeypatch.setattr(aiida_manager, 'get_profile_storage', lambda *args: cls)
 
-    # Must set ``use_subprocess=False`` because the ``initialise`` method of the storage implementation needs to be
-    # monkeypatched, because it will fail since the credentials for the services are fake.
-    result = run_cli_command(['profile', 'setup', entry_point, '--config', str(filepath_config)], use_subprocess=False)
-    assert f'Success: Created new profile `{profile_name}`.' in result.output_lines
+    result = CliRunner().invoke(profile_setup, [entry_point, '-n', '--config', str(filepath_config)])
+    assert f'Success: Created new profile `{profile_name}`.' in result.output
     assert profile_name in aiida_instance.profile_names

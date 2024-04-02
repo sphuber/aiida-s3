@@ -3,18 +3,13 @@
 from __future__ import annotations
 
 import contextlib
-import dataclasses
 import os
 import pathlib
-import subprocess
-import sys
-import types
 import typing as t
 import uuid
 
 import boto3
 import botocore
-import click
 import moto
 import pytest
 from aiida.manage.configuration.profile import Profile
@@ -33,107 +28,6 @@ def recursive_merge(left: dict[t.Any, t.Any], right: dict[t.Any, t.Any]) -> None
             recursive_merge(left[key], value)
         else:
             left[key] = value
-
-
-@dataclasses.dataclass
-class CliResult:
-    """Dataclass representing the result of a command line interface invocation."""
-
-    stderr_bytes: bytes
-    stdout_bytes: bytes
-    exc_info: tuple[t.Type[BaseException], BaseException, types.TracebackType] | tuple[None, None, None] = (
-        None,
-        None,
-        None,
-    )
-    exception: BaseException | None = None
-    exit_code: int | None = 0
-
-    @property
-    def stdout(self) -> str:
-        """Return the output that was written to stdout."""
-        return self.stdout_bytes.decode('utf-8', 'replace').replace('\r\n', '\n')
-
-    @property
-    def stderr(self) -> str:
-        """Return the output that was written to stderr."""
-        return self.stderr_bytes.decode('utf-8', 'replace').replace('\r\n', '\n')
-
-    @property
-    def output_lines(self) -> list[str]:
-        """Return the output that was written to stdout as a list of lines."""
-        return self.stdout.split('\n')
-
-
-@pytest.fixture
-def run_cli_command():
-    """Run a ``click`` command with the given options.
-
-    The call will raise if the command triggered an exception or the exit code returned is non-zero.
-    """
-    from aiida_s3.cli import cmd_root
-
-    def factory(
-        arguments: list[str] | None = None,
-        base_command: click.Command = cmd_root,
-        raises: bool = False,
-        use_subprocess: bool = True,
-    ) -> CliResult:
-        """Run the command and check the result.
-
-        :param arguments: The command line arguments to pass to the invocation.
-        :param base_command: The base command to invoke.
-        :param raises: Boolean, if ``True``, the command should raise an exception.
-        :param use_subprocess: Boolean, if ``True``, runs the command in a subprocess, otherwise it is run in the same
-            interpreter using :class:`click.testing.CliRunner`. The advantage of running in a subprocess is that it
-            simulates exactly what a user would invoke through the CLI. The test runner provided by ``click`` invokes
-            commands in a way that is not always a 100% analogous to an actual CLI call and so tests may not cover the
-            exact behavior. However, if a test monkeypatches the behavior of code that is called by the command being
-            tested, then a subprocess cannot be used, since the monkeypatch only applies to the current interpreter. In
-            these cases it is necessary to set ``use_subprocesses = False``.
-        :returns: Instance of ``CliResult``.
-        :raises AssertionError: If the command excepted and ``raises == True``, or if the command doesn't except and
-            ``raises == False``.
-        """
-        from click.testing import CliRunner
-
-        if use_subprocess:
-            command = [base_command.name] if base_command.name else []
-            command += arguments or []
-
-            try:
-                completed_process = subprocess.run(command, capture_output=True, check=True)
-            except subprocess.CalledProcessError as exception:
-                result = CliResult(
-                    exc_info=sys.exc_info(),
-                    exception=exception,
-                    exit_code=exception.returncode,
-                    stderr_bytes=exception.stderr,
-                    stdout_bytes=exception.stdout,
-                )
-            else:
-                result = CliResult(
-                    stderr_bytes=completed_process.stderr,
-                    stdout_bytes=completed_process.stdout,
-                )
-        else:
-            result_click = CliRunner(mix_stderr=False).invoke(base_command, arguments or [])
-            result = CliResult(
-                exc_info=result_click.exc_info or (None, None, None),
-                exception=result_click.exception,
-                exit_code=result_click.exit_code,
-                stderr_bytes=result_click.stderr_bytes or b'',
-                stdout_bytes=result_click.stdout_bytes,
-            )
-
-        if raises:
-            assert result.exception is not None, result.stdout
-        else:
-            assert result.exception is None, result.stderr
-
-        return result
-
-    return factory
 
 
 @pytest.fixture(scope='session')

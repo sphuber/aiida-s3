@@ -1,12 +1,11 @@
 """Implementation of :class:`aiida.orm.implementation.storage_backend.StorageBackend` using PostgreSQL + S3."""
 from __future__ import annotations
 
-import typing as t
-
+from aiida.storage.psql_dos.backend import PsqlDosBackend
 from aiida.storage.psql_dos.migrator import PsqlDosMigrator
+from pydantic import Field
 
 from ..repository.s3 import S3RepositoryBackend
-from .psql_dos import BasePsqlDosBackend
 
 
 class PsqlS3StorageMigrator(PsqlDosMigrator):
@@ -53,10 +52,30 @@ class PsqlS3StorageMigrator(PsqlDosMigrator):
         )
 
 
-class PsqlS3Storage(BasePsqlDosBackend):
+class PsqlS3Storage(PsqlDosBackend):
     """Storage backend using PostgresSQL and S3 object store."""
 
     migrator = PsqlS3StorageMigrator
+
+    class Configuration(PsqlDosBackend.Configuration):
+        """Model describing required information to configure an instance of the storage."""
+
+        endpoint_url: str = Field(
+            title='Server endpoint URL',
+            description='The endpoint URL of the server to connect to.',
+        )
+        access_key_id: str = Field(
+            title='Access key ID',
+            description='The access key ID.',
+        )
+        secret_access_key: str = Field(
+            title='Secret access key',
+            description='The secret access key.',
+        )
+        bucket_name: str = Field(
+            title='Bucket name',
+            description='The name of the S3 bucket to use.',
+        )
 
     def get_repository(self) -> S3RepositoryBackend:  # type: ignore[override]
         """Return the file repository backend instance.
@@ -64,37 +83,3 @@ class PsqlS3Storage(BasePsqlDosBackend):
         :returns: The repository of the configured profile.
         """
         return self.migrator(self.profile).get_repository()
-
-    @classmethod
-    def _get_cli_options(cls) -> dict[str, t.Any]:
-        """Return the CLI options that would allow to create an instance of this class."""
-        options = super()._get_cli_options()
-        options.update(
-            **{
-                'endpoint_url': {
-                    'required': True,
-                    'type': str,
-                    'prompt': 'Server endpoint URL',
-                    'help': 'The endpoint URL of the server to connect to.',
-                },
-                'access_key_id': {
-                    'required': True,
-                    'type': str,
-                    'prompt': 'Access key ID',
-                    'help': 'The access key ID.',
-                },
-                'secret_access_key': {
-                    'required': True,
-                    'type': str,
-                    'prompt': 'Secret access key',
-                    'help': 'The secret access key.',
-                },
-                'bucket_name': {
-                    'required': True,
-                    'type': str,
-                    'prompt': 'Bucket name',
-                    'help': 'The name of the S3 bucket to use.',
-                },
-            }
-        )
-        return options

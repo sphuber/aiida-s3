@@ -1,10 +1,10 @@
 """Implementation of :class:`aiida.orm.implementation.storage_backend.StorageBackend` using PostgreSQL + Azure."""
 from __future__ import annotations
 
-import typing as t
+from aiida.storage.psql_dos.backend import PsqlDosBackend
+from pydantic import Field
 
 from ..repository.azure_blob import AzureBlobStorageRepositoryBackend
-from .psql_dos import BasePsqlDosBackend
 from .psql_s3 import PsqlS3StorageMigrator
 
 
@@ -30,10 +30,22 @@ class PsqlAzureBlobStorageMigrator(PsqlS3StorageMigrator):
         )
 
 
-class PsqlAzureBlobStorage(BasePsqlDosBackend):
+class PsqlAzureBlobStorage(PsqlDosBackend):
     """Storage backend using PostgresSQL and Azure Blob Storage."""
 
     migrator = PsqlAzureBlobStorageMigrator
+
+    class Configuration(PsqlDosBackend.Configuration):
+        """Model describing required information to configure an instance of the storage."""
+
+        container_name: str = Field(
+            title='Container name',
+            description='The Azure Blob Storage container name.',
+        )
+        connection_string: str = Field(
+            title='Connection string',
+            description='The Azure Blob Storage connection string.',
+        )
 
     def get_repository(self) -> AzureBlobStorageRepositoryBackend:  # type: ignore[override]
         """Return the file repository backend instance.
@@ -41,25 +53,3 @@ class PsqlAzureBlobStorage(BasePsqlDosBackend):
         :returns: The repository of the configured profile.
         """
         return self.migrator(self.profile).get_repository()
-
-    @classmethod
-    def _get_cli_options(cls) -> dict[str, t.Any]:
-        """Return the CLI options that would allow to create an instance of this class."""
-        options = super()._get_cli_options()
-        options.update(
-            **{
-                'container_name': {
-                    'required': True,
-                    'type': str,
-                    'prompt': 'Container name',
-                    'help': 'The Azure Blob Storage container name.',
-                },
-                'connection_string': {
-                    'required': True,
-                    'type': str,
-                    'prompt': 'Connection string',
-                    'help': 'The Azure Blob Storage connection string.',
-                },
-            }
-        )
-        return options

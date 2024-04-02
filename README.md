@@ -17,32 +17,23 @@ The recommended method of installation is through the [`pip`](https://pip.pypa.i
 
 ## Setup
 
-To use one of the storage backends provided by `aiida-s3` with AiiDA, you need to create a profile for it:
+To use one of the storage backends provided by `aiida-s3` with AiiDA, you need to create a profile for it.
+This can be done through AiiDA's CLI `verdi`:
 
 1.  List the available storage backends:
     ```bash
-    aiida-s3 profile setup --help
+    verdi profile setup --help
     ```
 
-1.  Create a profile using one of the available storage backends by passing it as an argument to `aiida-s3 profile setup`, for example:
+1.  Create a profile using one of the available storage backends by passing it as an argument to `verdi profile setup`, for example:
     ```bash
-    aiida-s3 profile setup s3.psql_s3
+    verdi profile setup s3.psql_s3
     ```
     The command will prompt for the information required to setup the storage backend.
     After all information is entered, the storage backend is initialized, such as creating the database schema and creating file containers.
 
-1.  Create a default user for the profile:
-    ```bash
-    verdi -p profile-name user configure --set-default
-    ```
-
 1.  The profile is now ready to be used with AiiDA.
-    Optionally, you can set it as the new default profile:
-    ```bash
-    verdi profile setdefault profile-name
-    ```
-
-1.  Optionally, to test that everything is working as intended, launch a test calculation:
+    Optionally, to test that everything is working as intended, launch a test calculation:
     ```bash
     verdi -p profile-name devel launch-add
     ```
