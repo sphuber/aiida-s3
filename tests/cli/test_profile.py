@@ -16,7 +16,7 @@ def filepath_config():
 
 
 @pytest.mark.parametrize('filepath_config', filepath_config())
-def test_setup(aiida_manager, aiida_instance, monkeypatch, filepath_config):
+def test_setup(aiida_config_tmp, monkeypatch, filepath_config):
     """Test the ``verdi profile setup`` command for all storage backends.
 
     This will just verify that the command accepts the ``--config`` option with a valid YAML file containing the options
@@ -24,6 +24,8 @@ def test_setup(aiida_manager, aiida_instance, monkeypatch, filepath_config):
     that usually requires credentials which are faked here and so the initialisation would fail. That is why the
     :meth:`aiida.orm.implementation.storage_backend.StorageBackend.initialise` method is monkeypatched to be a no-op.
     """
+    from aiida.manage import configuration
+
     with filepath_config.open() as handle:
         profile_config = yaml.safe_load(handle)
 
@@ -32,9 +34,8 @@ def test_setup(aiida_manager, aiida_instance, monkeypatch, filepath_config):
     profile_name = profile_config['profile']
 
     monkeypatch.setattr(cls, 'initialise', lambda *args: True)
-    monkeypatch.setattr(cls, 'read_only', True)
-    monkeypatch.setattr(aiida_manager, 'get_profile_storage', lambda *args: cls)
+    monkeypatch.setattr(configuration, 'create_default_user', lambda *args: None)
 
     result = CliRunner().invoke(profile_setup, [entry_point, '-n', '--config', str(filepath_config)])
     assert f'Success: Created new profile `{profile_name}`.' in result.output
-    assert profile_name in aiida_instance.profile_names
+    assert profile_name in aiida_config_tmp.profile_names

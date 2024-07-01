@@ -20,7 +20,7 @@ classifiers = [
   'Topic :: Scientific/Engineering'
 ]
 dependencies = [
-  'aiida-core~=2.5.0',
+  'aiida-core~=2.6',
   'azure-storage-blob',
   'boto3'
 ]

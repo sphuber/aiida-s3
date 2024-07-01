@@ -14,7 +14,7 @@ import moto
 import pytest
 from aiida.manage.configuration.profile import Profile
 
-pytest_plugins = ['aiida.manage.tests.pytest_fixtures']
+pytest_plugins = 'aiida.tools.pytest_fixtures'
 
 
 def recursive_merge(left: dict[t.Any, t.Any], right: dict[t.Any, t.Any]) -> None:
@@ -156,8 +156,8 @@ def config_psql_s3(
         :param custom_configuration: Custom configuration to override default profile configuration.
         :returns: The profile configuration.
         """
-        configuration = config_psql_dos({})
-        recursive_merge(configuration, {'storage': {'backend': 's3.psql_s3', 'config': {**s3}}})
+        configuration = config_psql_dos()
+        recursive_merge(configuration, s3)
         recursive_merge(configuration, custom_configuration or {})
         return configuration
 
@@ -165,9 +165,10 @@ def config_psql_s3(
 
 
 @pytest.fixture(scope='session')
-def psql_s3_profile(aiida_profile_factory, config_psql_s3) -> t.Generator[Profile, None, None]:
+def psql_s3_profile(aiida_config, aiida_profile_factory, config_psql_s3) -> t.Generator[Profile, None, None]:
     """Return a test profile configured for the :class:`aiida_s3.storage.psql_s3.PsqlS3Storage`."""
-    yield aiida_profile_factory(config_psql_s3())
+    with aiida_profile_factory(aiida_config, storage_backend='s3.psql_s3', storage_config=config_psql_s3()) as profile:
+        yield profile
 
 
 @pytest.fixture(scope='session')
@@ -296,8 +297,8 @@ def config_psql_aws_s3(
         :param custom_configuration: Custom configuration to override default profile configuration.
         :returns: The profile configuration.
         """
-        configuration = config_psql_dos({})
-        recursive_merge(configuration, {'storage': {'backend': 's3.psql_aws_s3', 'config': {**aws_s3}}})
+        configuration = config_psql_dos()
+        recursive_merge(configuration, aws_s3)
         recursive_merge(configuration, custom_configuration or {})
         return configuration
 
@@ -305,9 +306,12 @@ def config_psql_aws_s3(
 
 
 @pytest.fixture(scope='session')
-def psql_aws_s3_profile(aiida_profile_factory, config_psql_aws_s3) -> t.Generator[Profile, None, None]:
+def psql_aws_s3_profile(aiida_config, aiida_profile_factory, config_psql_aws_s3) -> t.Generator[Profile, None, None]:
     """Return a test profile configured for the :class:`aiida_s3.storage.psql_aws_s3.PsqlAwsS3Storage`."""
-    yield aiida_profile_factory(config_psql_aws_s3())
+    with aiida_profile_factory(
+        aiida_config, storage_backend='s3.psql_aws_s3', storage_config=config_psql_aws_s3()
+    ) as profile:
+        yield profile
 
 
 @pytest.fixture(scope='session')
@@ -408,8 +412,8 @@ def config_psql_azure_blob(
         :param custom_configuration: Custom configuration to override default profile configuration.
         :returns: The profile configuration.
         """
-        configuration = config_psql_dos({})
-        recursive_merge(configuration, {'storage': {'backend': 's3.psql_azure_blob', 'config': {**azure_blob_storage}}})
+        configuration = config_psql_dos()
+        recursive_merge(configuration, azure_blob_storage)
         recursive_merge(configuration, custom_configuration or {})
         return configuration
 
@@ -418,8 +422,9 @@ def config_psql_azure_blob(
 
 @pytest.fixture(scope='session')
 def psql_azure_blob_profile(
-    should_mock_azure_blob,
+    aiida_config,
     aiida_profile_factory,
+    should_mock_azure_blob,
     config_psql_azure_blob,
     azure_blob_storage,
 ) -> t.Generator[Profile, None, None] | None:
@@ -431,7 +436,10 @@ def psql_azure_blob_profile(
         yield None
     else:
         try:
-            yield aiida_profile_factory(config_psql_azure_blob())
+            with aiida_profile_factory(
+                aiida_config, storage_backend='s3.psql_azure_blob', storage_config=config_psql_azure_blob()
+            ) as profile:
+                yield profile
         finally:
             repository = AzureBlobStorageRepositoryBackend(**azure_blob_storage)
             repository.erase()
